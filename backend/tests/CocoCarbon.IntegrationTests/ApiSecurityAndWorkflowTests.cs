@@ -26,6 +26,7 @@ public sealed class StubFirebaseTokenVerifier : IFirebaseTokenVerifier
             "valid-farmer-a" => Task.FromResult(new VerifiedFirebaseIdentity("uid-farmer-a", "farmer.a@test.local", "Farmer A", true, false)),
             "valid-farmer-b" => Task.FromResult(new VerifiedFirebaseIdentity("uid-farmer-b", "farmer.b@test.local", "Farmer B", true, false)),
             "valid-admin" => Task.FromResult(new VerifiedFirebaseIdentity("demo-admin-uid", "admin.demo@cococarbon.local", "Admin", true, false)),
+            "valid-coop" => Task.FromResult(new VerifiedFirebaseIdentity("demo-coop-uid", "coop.demo@cococarbon.local", "CoopMgr", true, false)),
             "valid-reviewer" => Task.FromResult(new VerifiedFirebaseIdentity("demo-reviewer-uid", "reviewer.demo@cococarbon.local", "Reviewer", true, false)),
             "valid-developer" => Task.FromResult(new VerifiedFirebaseIdentity("demo-dev-uid", "developer.demo@cococarbon.local", "Developer", true, false)),
             "valid-buyer" => Task.FromResult(new VerifiedFirebaseIdentity("demo-buyer-uid", "buyer.demo@cococarbon.local", "Buyer", true, false)),
@@ -355,5 +356,105 @@ public class ApiSecurityAndWorkflowTests : IClassFixture<CocoCarbonApiFactory>
             message = "Xin lịch sử dữ liệu vườn dừa."
         });
         Assert.Equal(HttpStatusCode.Created, rfqResp.StatusCode);
+    }
+
+    [Fact]
+    public async Task CooperativeDashboard_EnforcesManagerScope_AndExcludesUnauthorizedFarms()
+    {
+        var coopClient = ClientWithToken("valid-coop");
+        var farmerA = ClientWithToken("valid-farmer-a");
+
+        // Create a new cooperative managed by demo-coop-uid
+        var coopResp = await coopClient.PostAsJsonAsync("/api/v1/cooperatives", new
+        {
+            name = "HTX Test Scope",
+            code = $"HTX-T-{Guid.NewGuid():N}"[..12],
+            province = "Vĩnh Long",
+            commune = "Giồng Trôm"
+        });
+        coopResp.EnsureSuccessStatusCode();
+        var coopId = (await coopResp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        // Farmer A cannot view Cooperative dashboard
+        var unauthDash = await farmerA.GetAsync($"/api/v1/cooperatives/{coopId}/dashboard");
+        Assert.Equal(HttpStatusCode.Forbidden, unauthDash.StatusCode);
+
+        // Farmer A creates farm (3.0 ha) & Coop links it WITHOUT authorization -> excluded from summary
+        var fResp = await farmerA.PostAsJsonAsync("/api/v1/farms", new
+        {
+            name = "Vườn chưa ủy quyền",
+            province = "Vĩnh Long",
+            commune = "Giồng Trôm",
+            areaHa = 3.0m,
+            treeCount = 600,
+            variety = "TallDuaTa",
+            ageYears = 10,
+            hasLocationConsent = false,
+            hasPhotoConsent = false
+        });
+        fResp.EnsureSuccessStatusCode();
+        var fId = (await fResp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        var linkResp = await coopClient.PostAsJsonAsync($"/api/v1/cooperatives/{coopId}/farms", new
+        {
+            farmId = fId,
+            isDataAuthorized = false
+        });
+        linkResp.EnsureSuccessStatusCode();
+
+        var dashResp = await coopClient.GetAsync($"/api/v1/cooperatives/{coopId}/dashboard");
+        dashResp.EnsureSuccessStatusCode();
+        var dashJson = await dashResp.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(0, dashJson.GetProperty("summary").GetProperty("authorizedFarmCount").GetInt32());
+        Assert.Equal(0m, dashJson.GetProperty("summary").GetProperty("totalDeclaredAreaHa").GetDecimal());
+    }
+
+    [Fact]
+    public async Task FactorVersioning_PreservesImmutableCalculationHistory()
+    {
+        using var isolatedFactory = new CocoCarbonApiFactory();
+        var farmerA = isolatedFactory.CreateClient();
+        farmerA.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "valid-farmer-a");
+        var admin = isolatedFactory.CreateClient();
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "valid-admin");
+
+        // 1. Run calculation using v1.0 factor (75.2436)
+        var calc1 = await farmerA.PostAsJsonAsync("/api/v1/carbon-calculator/estimate", new
+        {
+            areaHa = 1.0m,
+            treeCount = 200,
+            variety = "TallDuaTa",
+            treeAgeYears = 10
+        });
+        calc1.EnsureSuccessStatusCode();
+        var calc1Id = (await calc1.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("calculationId").GetGuid();
+
+        // 2. Admin creates v2.0 factor for TallDuaTa 10y (e.g., 80.0000)
+        var sourcesResp = await admin.GetAsync("/api/v1/research-sources");
+        var sourcesJson = await sourcesResp.Content.ReadFromJsonAsync<JsonElement>();
+        var r1Id = sourcesJson.EnumerateArray().First(s => s.GetProperty("code").GetString() == "R1").GetProperty("id").GetGuid();
+
+        var createFactorResp = await admin.PostAsJsonAsync("/api/v1/admin/research-factors", new
+        {
+            code = "CTU2015-TALL-10Y",
+            variety = "TallDuaTa",
+            varietyDisplayName = "Dừa cao - Dừa Ta (Tall)",
+            treeAgeYears = 10,
+            valueTCO2PerHa = 80.0000m,
+            unit = "tCO2/ha",
+            sourceId = r1Id,
+            version = $"TEST-v2-{Guid.NewGuid():N}"[..16],
+            validFrom = DateTimeOffset.UtcNow,
+            applicabilityNotes = "Test version immutability"
+        });
+        createFactorResp.EnsureSuccessStatusCode();
+
+        // 3. Verify historic calculation STILL retains 75.2436 and CTU-2015-v1.0
+        var historyResp = await farmerA.GetAsync("/api/v1/carbon-calculator/history");
+        historyResp.EnsureSuccessStatusCode();
+        var histJson = await historyResp.Content.ReadFromJsonAsync<JsonElement>();
+        var historicItem = histJson.EnumerateArray().First(x => x.GetProperty("id").GetGuid() == calc1Id);
+        Assert.Equal(75.2436m, historicItem.GetProperty("estimatedCO2EquivalentT").GetDecimal());
+        Assert.Equal("CTU-2015-v1.0", historicItem.GetProperty("factorVersion").GetString());
     }
 }
