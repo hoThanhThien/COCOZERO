@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>CocoCarbon AI - Hướng dẫn sử dụng 1 trang A4</title>
+  <style>
+    @page { size: A4; margin: 12mm; }
+    body { font-family: "Segoe UI", Arial, sans-serif; color: #1b241f; line-height: 1.4; font-size: 10.5pt; margin: 0; }
+    .header { background: #123c29; color: #ffffff; padding: 14px 18px; border-radius: 10px; }
+    .header h1 { margin: 0; font-size: 16pt; }
+    .header p { margin: 4px 0 0; font-size: 9.5pt; color: #d8efe0; }
+    h2 { color: #123c29; font-size: 11.5pt; margin: 12px 0 6px; border-bottom: 1.5px solid #d8e2da; padding-bottom: 3px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    .card { border: 1px solid #d8e2da; border-radius: 8px; padding: 10px; background: #f8fbf8; }
+    .steps { padding-left: 18px; margin: 6px 0; }
+    .steps li { margin-bottom: 5px; }
+    .disclaimer { margin-top: 10px; border: 1px solid #f59e0b; background: #fffbeb; padding: 10px 12px; border-radius: 8px; font-size: 9.2pt; }
+    code { background: #eef3ef; padding: 1px 4px; border-radius: 4px; font-size: 9pt; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>COCOCARBON AI — Hướng dẫn trải nghiệm nhanh (1 trang A4)</h1>
+    <p>Từ vườn dừa đến giá trị xanh • Khu vực khởi điểm: Vùng dừa Bến Tre — Tỉnh Vĩnh Long</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <strong>1. Liên kết truy cập & Ứng dụng</strong><br />
+      • <strong>Web App (Local / Docker):</strong> <code>http://localhost:3000</code> (hoặc URL HTTPS sau khi trỏ VPS)<br />
+      • <strong>API & Swagger:</strong> <code>http://localhost:8080/swagger</code><br />
+      • <strong>Android APK:</strong> <code>android/app/build/outputs/apk/</code>
+    </div>
+    <div class="card">
+      <strong>2. Tài khoản trải nghiệm [DEMO]</strong><br />
+      • Đăng nhập bằng <strong>Google Sign-In</strong> (Firebase Auth)<br />
+      • Hoặc chọn nhanh trên trang <code>/login</code> (chế độ dev):<br />
+      <code>Nông hộ (Farmer)</code> • <code>HTX</code> • <code>Developer</code> • <code>Buyer</code> • <code>Reviewer</code> • <code>Admin</code>
+    </div>
+  </div>
+
+  <h2>3. Quy trình 5 bước trải nghiệm sản phẩm</h2>
+  <ol class="steps">
+    <li><strong>Đăng nhập & Đồng thuận (<code>/login</code> → <code>/onboarding</code>):</strong> Chọn vai trò DEMO hoặc Google Sign-In, xác nhận đồng thuận lưu vị trí GPS, ảnh hiện trường và xử lý tài liệu AI.</li>
+    <li><strong>Số hóa Vườn dừa (<code>/farms</code>):</strong> Khai báo tên vườn, tỉnh <em>Vĩnh Long</em>, xã thuộc vùng dừa <em>Bến Tre</em>, diện tích (ha), số cây, nhóm giống (<em>Dừa Ta / Xiêm xanh</em>), tuổi cây và tọa độ.</li>
+    <li><strong>CocoCarbon Calculator (<code>/calculator</code>):</strong> Phép tính chạy 100% tại C# backend từ đúng 4 hệ số CTU (2015). Ví dụ: <em>1.0 ha Dừa Ta 10 năm → 75.2436 tCO2 tương đương tham khảo</em> (kèm bối cảnh mật độ 160–240 cây/ha năm 2024; từ chối nội suy nếu nhập tuổi khác 4 hoặc 10).</li>
+    <li><strong>Upload Chứng từ & AI Carbon Auditor (<code>/farms/{id}</code> → <code>/documents</code>):</strong> Tải PDF/ảnh, hệ thống kiểm tra magic bytes + SHA-256, gọi Python FastAPI/Gemini trích xuất trường dữ liệu kèm trang chứng cứ, phát hiện trùng lặp/lệch diện tích và cho phép <em>Reviewer</em> phê duyệt.</li>
+    <li><strong>Hợp tác xã, Danh mục Dự án & RFQ (<code>/cooperative</code>, <code>/projects</code>, <code>/buyer</code>):</strong> Xem tổng hợp diện tích theo ủy quyền HTX, lọc dự án đang chuẩn bị hồ sơ và gửi yêu cầu tìm hiểu (RFQ).</li>
+  </ol>
+
+  <h2>4. Trợ lý Khoa học RAG & Quản trị</h2>
+  <p style="margin:4px 0;">Vào <code>/assistant</code> để hỏi đáp trích dẫn nguồn kiểm chứng <code>[R1]-[R12]</code>; vào <code>/admin</code> bằng tài khoản Admin DEMO để duyệt vai trò, xem lịch sử phiên bản hệ số và Audit Log.</p>
+
+  <div class="disclaimer">
+    <strong>Lưu ý dữ liệu & Ranh giới khoa học:</strong> Dữ liệu mẫu trong hệ thống được gắn nhãn <code>DEMO</code>. Kết quả Calculator là <em>ước tính tham khảo theo sinh khối và cấp tuổi trong nghiên cứu Giồng Trôm (2015)</em> — <strong>không phải</strong> lượng hấp thụ CO2 hằng năm, <strong>không phải</strong> tín chỉ carbon đã phát hành và <strong>không đảm bảo</strong> doanh thu. CocoCarbon AI không thay thế registry, cơ quan quản lý, tổ chức thẩm định (VVB) hay sàn giao dịch được cấp phép.
+  </div>
+</body>
+</html>
