@@ -3,6 +3,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 $repoRoot = (Resolve-Path "$PSScriptRoot\..").Path
 $distDir = Split-Path -Parent $OutputZip
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
@@ -37,7 +39,7 @@ try {
         }
     }
 
-    Compress-Archive -Path "$tempStage\*" -DestinationPath $OutputZip -Force
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($tempStage, $OutputZip, [System.IO.Compression.CompressionLevel]::Optimal, $false)
     Write-Host "Created clean source package: $OutputZip"
 }
 finally {
