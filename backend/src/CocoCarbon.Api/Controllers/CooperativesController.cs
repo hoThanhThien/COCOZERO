@@ -75,7 +75,19 @@ public sealed class CooperativesController(CocoCarbonDbContext db, IAuditService
         await audit.RecordAsync(userId, User.GetEmail(), "COOPERATIVE_CREATED", "Cooperative", coop.Id.ToString(),
             null, new { coop.Name, coop.Code }, null, ct);
 
-        return CreatedAtAction(nameof(GetDashboard), new { id = coop.Id }, coop);
+        return CreatedAtAction(nameof(GetDashboard), new { id = coop.Id }, new
+        {
+            coop.Id,
+            coop.Name,
+            coop.Code,
+            coop.Province,
+            coop.Commune,
+            coop.HistoricalRegion,
+            coop.ManagerUserId,
+            coop.Status,
+            coop.DataOriginTag,
+            coop.CreatedAt
+        });
     }
 
     [HttpPost("{id:guid}/farms")]

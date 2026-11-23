@@ -87,25 +87,27 @@ public sealed class StubPythonAiServiceClient : IPythonAiServiceClient
 
 public sealed class CocoCarbonApiFactory : WebApplicationFactory<Program>, IDisposable
 {
-    private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"cococarbon_test_{Guid.NewGuid():N}.db");
-    private readonly string _storagePath = Path.Combine(Path.GetTempPath(), $"cococarbon_storage_{Guid.NewGuid():N}");
+    private readonly string _baseTemp = Path.Combine(AppContext.BaseDirectory, $"test_run_{Guid.NewGuid():N}");
+    private readonly string _dbPath;
+    private readonly string _storagePath;
     public StubPythonAiServiceClient StubAi { get; } = new();
+
+    public CocoCarbonApiFactory()
+    {
+        Directory.CreateDirectory(_baseTemp);
+        _dbPath = Path.Combine(_baseTemp, "test.db");
+        _storagePath = Path.Combine(_baseTemp, "storage");
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-        builder.ConfigureAppConfiguration((_, cfg) =>
-        {
-            cfg.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["DB_PROVIDER"] = "sqlite",
-                ["ConnectionStrings:DefaultConnection"] = $"Data Source={_dbPath}",
-                ["LOCAL_STORAGE_ROOT"] = _storagePath,
-                ["FIREBASE_AUTH_DEV_ALLOW_MOCK"] = "false",
-                ["SEED_DEMO_DATA"] = "true",
-                ["MAX_UPLOAD_BYTES"] = "524288" // 512 KB for oversized upload test
-            });
-        });
+        builder.UseSetting("DB_PROVIDER", "sqlite");
+        builder.UseSetting("ConnectionStrings:DefaultConnection", $"Data Source={_dbPath}");
+        builder.UseSetting("LOCAL_STORAGE_ROOT", _storagePath);
+        builder.UseSetting("FIREBASE_AUTH_DEV_ALLOW_MOCK", "false");
+        builder.UseSetting("SEED_DEMO_DATA", "true");
+        builder.UseSetting("MAX_UPLOAD_BYTES", "524288");
 
         builder.ConfigureServices(services =>
         {
@@ -121,8 +123,7 @@ public sealed class CocoCarbonApiFactory : WebApplicationFactory<Program>, IDisp
         base.Dispose(disposing);
         if (disposing)
         {
-            try { if (File.Exists(_dbPath)) File.Delete(_dbPath); } catch { }
-            try { if (Directory.Exists(_storagePath)) Directory.Delete(_storagePath, true); } catch { }
+            try { if (Directory.Exists(_baseTemp)) Directory.Delete(_baseTemp, true); } catch { }
         }
     }
 }

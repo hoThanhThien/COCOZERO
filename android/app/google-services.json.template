@@ -1,0 +1,30 @@
+{
+  "COMMENT": "TEMPLATE ONLY - Replace with real google-services.json downloaded from your shared Firebase Console project (register package com.cococarbon.app + debug/release SHA-1 and SHA-256). Rename to google-services.json (gitignored).",
+  "project_info": {
+    "project_number": "CHANGE_ME",
+    "project_id": "CHANGE_ME_FIREBASE_PROJECT_ID",
+    "storage_bucket": "CHANGE_ME_FIREBASE_PROJECT_ID.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "android_client_info": {
+          "package_name": "com.cococarbon.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "CHANGE_ME_WEB_CLIENT_ID.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "CHANGE_ME_ANDROID_API_KEY"
+        }
+      ]
+    }
+  ],
+  "configuration_version": "1"
+}

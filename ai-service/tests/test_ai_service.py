@@ -1,0 +1,102 @@
+import pymupdf
+from fastapi.testclient import TestClient
+from app.main import app
+
+
+client = TestClient(app)
+
+
+def _make_pdf(text: str) -> bytes:
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), text)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+def test_health_endpoint():
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "healthy"
+
+
+def test_analyze_valid_pdf_returns_evidence_and_schema_contract():
+    pdf_bytes = _make_pdf("Giay chung nhan vuon dua Giong Trom. Dien tich: 1.0 ha. So luong: 200 cay Dua Ta.")
+    resp = client.post(
+        "/internal/v1/analyze-document",
+        files={"file": ("vuon.pdf", pdf_bytes, "application/pdf")},
+        data={
+            "file_id": "file-001",
+            "sha256_hash": "abc123",
+            "farm_context_json": '{"farmName":"Vuon A","areaHa":1.0,"treeCount":200,"commune":"Giong Trom"}',
+            "project_context_json": "{}",
+            "known_hashes_json": "[]",
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    for required_key in [
+        "analysisId",
+        "fileId",
+        "extractedFields",
+        "findings",
+        "missingFields",
+        "duplicates",
+        "evidence",
+        "confidenceNotes",
+        "reviewerRequired",
+        "modelName",
+        "promptVersion",
+        "createdAt",
+    ]:
+        assert required_key in body
+    assert body["reviewerRequired"] is True
+    assert len(body["evidence"]) >= 1
+    assert body["readinessRubric"]["label"] == "Mức độ đầy đủ hồ sơ / Project Readiness"
+
+
+def test_analyze_malformed_pdf_handled_gracefully():
+    resp = client.post(
+        "/internal/v1/analyze-document",
+        files={"file": ("corrupt.pdf", b"%PDF-1.4\ncorrupted binary payload", "application/pdf")},
+        data={"file_id": "file-bad", "sha256_hash": "badhash"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "MalformedDocument"
+    assert any(f["code"] == "MALFORMED_PDF" for f in body["findings"])
+
+
+def test_duplicate_sha256_hash_detected():
+    pdf_bytes = _make_pdf("Dien tich: 1.5 ha")
+    resp = client.post(
+        "/internal/v1/analyze-document",
+        files={"file": ("dup.pdf", pdf_bytes, "application/pdf")},
+        data={
+            "file_id": "file-dup",
+            "sha256_hash": "deadbeef1234",
+            "known_hashes_json": '["deadbeef1234"]',
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert any(d["duplicateType"] == "exact_duplicate" for d in body["duplicates"])
+
+
+def test_rag_assistant_cites_sources_and_handles_unknown():
+    known = client.post(
+        "/internal/v1/assistant/query",
+        json={"role": "Farmer", "question": "Hệ số CTU 2015 cho Dừa Ta 10 năm tuổi là bao nhiêu?"},
+    )
+    assert known.status_code == 200
+    assert known.json()["hasEnoughEvidence"] is True
+    assert any(c["sourceCode"] == "R1" for c in known.json()["citations"])
+
+    unknown = client.post(
+        "/internal/v1/assistant/query",
+        json={"role": "Buyer", "question": "Giá sàn tín chỉ carbon tại sao Hỏa năm 2030 là bao nhiêu?"},
+    )
+    assert unknown.status_code == 200
+    assert unknown.json()["hasEnoughEvidence"] is False
+    assert "Chưa có đủ dữ liệu" in unknown.json()["answer"]

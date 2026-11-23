@@ -1,5 +1,6 @@
 using CocoCarbon.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CocoCarbon.Infrastructure.Persistence;
 
@@ -176,5 +177,28 @@ public class CocoCarbonDbContext(DbContextOptions<CocoCarbonDbContext> options) 
             e.HasIndex(x => x.CreatedAt);
             e.HasIndex(x => new { x.EntityType, x.EntityId });
         });
+
+        if (Database.IsSqlite())
+        {
+            var dtoConverter = new DateTimeOffsetToBinaryConverter();
+            var nullableDtoConverter = new ValueConverter<DateTimeOffset?, long?>(
+                v => v.HasValue ? v.Value.UtcTicks : null,
+                v => v.HasValue ? new DateTimeOffset(v.Value, TimeSpan.Zero) : null);
+
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entityType.GetProperties())
+                {
+                    if (property.ClrType == typeof(DateTimeOffset))
+                    {
+                        property.SetValueConverter(dtoConverter);
+                    }
+                    else if (property.ClrType == typeof(DateTimeOffset?))
+                    {
+                        property.SetValueConverter(nullableDtoConverter);
+                    }
+                }
+            }
+        }
     }
 }

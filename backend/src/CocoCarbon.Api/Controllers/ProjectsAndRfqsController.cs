@@ -178,7 +178,24 @@ public sealed class ProjectsAndRfqsController(CocoCarbonDbContext db, IAuditServ
         await audit.RecordAsync(userId, User.GetEmail(), "PROJECT_CREATED", "Project", project.Id.ToString(),
             null, new { project.Code, project.Name, project.ProjectStatus }, null, ct);
 
-        return CreatedAtAction(nameof(GetProject), new { id = project.Id }, project);
+        return CreatedAtAction(nameof(GetProject), new { id = project.Id }, new
+        {
+            project.Id,
+            project.Code,
+            project.Name,
+            project.ProjectType,
+            project.Province,
+            project.HistoricalRegion,
+            project.DeclaredTotalAreaHa,
+            project.IntendedMethodology,
+            project.ReadinessScore,
+            project.ReadinessLabel,
+            project.VerificationStatus,
+            project.ProjectStatus,
+            project.DataOriginTag,
+            project.Disclaimer,
+            project.CreatedAt
+        });
     }
 
     [HttpPatch("projects/{id:guid}")]
@@ -223,7 +240,20 @@ public sealed class ProjectsAndRfqsController(CocoCarbonDbContext db, IAuditServ
         await audit.RecordAsync(userId, User.GetEmail(), "PROJECT_UPDATED", "Project", project.Id.ToString(),
             null, new { project.ProjectStatus, project.ReadinessScore, project.VerificationStatus }, null, ct);
 
-        return Ok(project);
+        return Ok(new
+        {
+            project.Id,
+            project.Code,
+            project.Name,
+            project.IntendedMethodology,
+            project.MethodologyNotes,
+            project.BaselineSummary,
+            project.MonitoringPlanSummary,
+            project.ReadinessScore,
+            project.VerificationStatus,
+            project.ProjectStatus,
+            project.UpdatedAt
+        });
     }
 
     [HttpPost("projects/{id:guid}/farms")]
@@ -359,6 +389,13 @@ public sealed class ProjectsAndRfqsController(CocoCarbonDbContext db, IAuditServ
         await audit.RecordAsync(userId, User.GetEmail(), "RFQ_RESPONDED", "Rfq", rfq.Id.ToString(),
             null, new { rfq.Status }, null, ct);
 
-        return Ok(rfq);
+        return Ok(new
+        {
+            rfq.Id,
+            rfq.ProjectId,
+            rfq.Status,
+            rfq.SellerResponse,
+            rfq.UpdatedAt
+        });
     }
 }

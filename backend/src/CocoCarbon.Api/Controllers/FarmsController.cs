@@ -293,7 +293,18 @@ public sealed class FarmsController(
 
         db.FarmObservations.Add(obs);
         await db.SaveChangesAsync(ct);
-        return CreatedAtAction(nameof(GetFarm), new { id }, obs);
+        return CreatedAtAction(nameof(GetFarm), new { id }, new
+        {
+            obs.Id,
+            obs.FarmId,
+            obs.ObservedAt,
+            obs.TreeAgeYears,
+            obs.DbhCm,
+            obs.HeightM,
+            obs.HealthStatus,
+            obs.PracticeDataJson,
+            obs.DataOriginTag
+        });
     }
 
     [HttpGet("farms/{id:guid}/files")]

@@ -2,7 +2,6 @@ using FirebaseAdmin;
 using FirebaseAdmin.Auth;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace CocoCarbon.Infrastructure.Auth;
@@ -28,7 +27,6 @@ public sealed class FirebaseAdminTokenVerifier : IFirebaseTokenVerifier
 {
     private static readonly object AppInitLock = new();
     private readonly IConfiguration _config;
-    private readonly IHostEnvironment _env;
     private readonly ILogger<FirebaseAdminTokenVerifier> _logger;
     private readonly bool _allowDevDemoTokens;
 
@@ -44,16 +42,15 @@ public sealed class FirebaseAdminTokenVerifier : IFirebaseTokenVerifier
 
     public FirebaseAdminTokenVerifier(
         IConfiguration config,
-        IHostEnvironment env,
         ILogger<FirebaseAdminTokenVerifier> logger)
     {
         _config = config;
-        _env = env;
         _logger = logger;
 
+        var envName = _config["ASPNETCORE_ENVIRONMENT"] ?? _config["DOTNET_ENVIRONMENT"] ?? "Production";
         var flag = _config["FIREBASE_AUTH_DEV_ALLOW_MOCK"];
         _allowDevDemoTokens =
-            !_env.IsProduction() &&
+            string.Equals(envName, "Development", StringComparison.OrdinalIgnoreCase) &&
             string.Equals(flag, "true", StringComparison.OrdinalIgnoreCase);
 
         EnsureFirebaseInitialized();

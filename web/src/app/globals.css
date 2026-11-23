@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+:root {
+  --coco-bg: #f6f8f5;
+  --coco-surface: #ffffff;
+  --coco-forest: #123c29;
+  --coco-emerald: #15803d;
+  --coco-emerald-soft: #e8f5ec;
+  --coco-border: #d8e2da;
+  --coco-text: #1b241f;
+  --coco-muted: #526158;
+}
+
+body {
+  background-color: var(--coco-bg);
+  color: var(--coco-text);
+  font-family: "Be Vietnam Pro", "Inter", system-ui, -apple-system, sans-serif;
+}
