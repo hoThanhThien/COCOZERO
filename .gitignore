@@ -1,0 +1,53 @@
+# Secrets and environment files (NEVER commit real secrets)
+.env
+.env.*
+!.env.example
+
+# Firebase & Android signing / credentials
+*firebase-adminsdk*.json
+*service-account*.json
+google-services.json
+*.keystore
+*.jks
+*.pem
+*.key
+*.pfx
+*.p12
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+TestResults/
+*.trx
+*.coverage
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+coverage/
+.playwright/
+
+# Android / Gradle
+android/.gradle/
+android/local.properties
+android/**/build/
+!android/gradle/wrapper/gradle-wrapper.jar
+
+# Local runtime storage & dev databases
+storage/
+*.db
+*.sqlite
+*.sqlite3
+logs/
