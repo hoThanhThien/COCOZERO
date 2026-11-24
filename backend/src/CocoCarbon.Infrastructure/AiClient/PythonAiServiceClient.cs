@@ -7,6 +7,11 @@ using Microsoft.Extensions.Logging;
 
 namespace CocoCarbon.Infrastructure.AiClient;
 
+public sealed record KnownCoordinateDto(
+    [property: JsonPropertyName("farmId")] string FarmId,
+    [property: JsonPropertyName("latitude")] double Latitude,
+    [property: JsonPropertyName("longitude")] double Longitude);
+
 public sealed record AiDocumentAnalysisRequest(
     Guid FileId,
     string FileName,
@@ -15,7 +20,8 @@ public sealed record AiDocumentAnalysisRequest(
     byte[] FileBytes,
     object? FarmContext,
     object? ProjectContext,
-    IReadOnlyCollection<string> KnownHashes);
+    IReadOnlyCollection<string> KnownHashes,
+    IReadOnlyCollection<KnownCoordinateDto>? KnownCoordinates = null);
 
 public sealed record AiExtractedFieldDto(
     [property: JsonPropertyName("field")] string Field,
@@ -54,6 +60,12 @@ public sealed record AiReadinessItemDto(
     [property: JsonPropertyName("status")] string Status,
     [property: JsonPropertyName("notes")] string Notes);
 
+public sealed record AiFraudSignalDto(
+    [property: JsonPropertyName("code")] string Code,
+    [property: JsonPropertyName("severity")] string Severity,
+    [property: JsonPropertyName("evidenceSnippet")] string EvidenceSnippet,
+    [property: JsonPropertyName("explanation")] string Explanation);
+
 public sealed record AiDocumentAnalysisResponse(
     [property: JsonPropertyName("analysisId")] string AnalysisId,
     [property: JsonPropertyName("fileId")] string FileId,
@@ -66,6 +78,9 @@ public sealed record AiDocumentAnalysisResponse(
     [property: JsonPropertyName("evidence")] List<AiEvidenceDto> Evidence,
     [property: JsonPropertyName("confidenceNotes")] List<string> ConfidenceNotes,
     [property: JsonPropertyName("readinessRubric")] AiReadinessRubricDto? ReadinessRubric,
+    [property: JsonPropertyName("fraudRiskScore")] double FraudRiskScore,
+    [property: JsonPropertyName("fraudRiskLevel")] string FraudRiskLevel,
+    [property: JsonPropertyName("fraudSignals")] List<AiFraudSignalDto> FraudSignals,
     [property: JsonPropertyName("reviewerRequired")] bool ReviewerRequired,
     [property: JsonPropertyName("provider")] string Provider,
     [property: JsonPropertyName("modelName")] string ModelName,
@@ -137,6 +152,7 @@ public sealed class PythonAiServiceClient : IPythonAiServiceClient
             form.Add(new StringContent(JsonSerializer.Serialize(request.FarmContext ?? new { }, JsonOpts)), "farm_context_json");
             form.Add(new StringContent(JsonSerializer.Serialize(request.ProjectContext ?? new { }, JsonOpts)), "project_context_json");
             form.Add(new StringContent(JsonSerializer.Serialize(request.KnownHashes, JsonOpts)), "known_hashes_json");
+            form.Add(new StringContent(JsonSerializer.Serialize(request.KnownCoordinates ?? [], JsonOpts)), "known_coordinates_json");
 
             using var msg = new HttpRequestMessage(HttpMethod.Post, "internal/v1/analyze-document")
             {
@@ -226,6 +242,9 @@ public sealed class PythonAiServiceClient : IPythonAiServiceClient
             Evidence: [],
             ConfidenceNotes: ["Chưa xác minh độc lập; không có trích xuất AI hoàn chỉnh."],
             ReadinessRubric: null,
+            FraudRiskScore: 0.0,
+            FraudRiskLevel: "Unknown",
+            FraudSignals: [],
             ReviewerRequired: true,
             Provider: "fallback",
             ModelName: "none",

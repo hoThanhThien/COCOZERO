@@ -14,6 +14,7 @@ from app.schemas import (
     DuplicateFinding,
     EvidenceItem,
     ExtractedField,
+    FraudSignal,
 )
 from app.services.document_extractor import (
     inspect_document_bytes,
@@ -64,6 +65,7 @@ async def analyze_document(
     farm_context_json: str = Form("{}"),
     project_context_json: str = Form("{}"),
     known_hashes_json: str = Form("[]"),
+    known_coordinates_json: str = Form("[]"),
     x_internal_api_key: str | None = Header(default=None),
 ) -> DocumentAnalysisResponse:
     verify_internal_key(x_internal_api_key)
@@ -82,6 +84,7 @@ async def analyze_document(
         farm_context = json.loads(farm_context_json) if farm_context_json else {}
         project_context = json.loads(project_context_json) if project_context_json else {}
         known_hashes = json.loads(known_hashes_json) if known_hashes_json else []
+        known_coordinates = json.loads(known_coordinates_json) if known_coordinates_json else []
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail=f"Invalid context JSON: {exc}") from exc
 
@@ -131,10 +134,12 @@ async def analyze_document(
         project_context=project_context,
     )
 
-    rule_findings, duplicates = run_consistency_and_duplicate_checks(
+    rule_findings, duplicates, fraud_score, fraud_level, fraud_signals = run_consistency_and_duplicate_checks(
         file_id=file_id,
         sha256_hash=sha256_hash,
         known_hashes=known_hashes,
+        known_coordinates=known_coordinates,
+        pages_text=pdf_info.pages_text,
         extracted_fields=extraction.extractedFields,
         farm_context=farm_context,
     )
@@ -174,6 +179,9 @@ async def analyze_document(
         evidence=evidence_items,
         confidenceNotes=confidence_notes,
         readinessRubric=rubric,
+        fraudRiskScore=fraud_score,
+        fraudRiskLevel=fraud_level,
+        fraudSignals=[FraudSignal(**s) for s in fraud_signals],
         reviewerRequired=True,
         provider=provider.provider_name if not is_fallback else "heuristic_fallback",
         modelName=provider.model_name,

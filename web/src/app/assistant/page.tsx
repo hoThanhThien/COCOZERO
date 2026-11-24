@@ -15,8 +15,9 @@ interface AssistantResult {
 
 const SAMPLE_QUESTIONS = [
   "Hệ số CTU 2015 cho Dừa Ta 10 năm tuổi là bao nhiêu và có giới hạn gì?",
+  "Chi phí chăm sóc vườn dừa và chuẩn bị hồ sơ MRV nên theo dõi như thế nào?",
+  "Có thể tính doanh thu bán tín chỉ carbon năm thứ 10 từ CTU 2015 không?",
   "Vì sao không được lấy hệ số 196 tấn/ha của IPCC 2006 trộn vào CTU 2015?",
-  "Mật độ 160-240 cây/ha trong khảo sát Bến Tre 2024 có phải ngưỡng chứng nhận không?",
   "Verra VM0042 v2.2 có tự động áp dụng cho sinh khối thân dừa không?",
 ];
 

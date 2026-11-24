@@ -2,10 +2,28 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bot, Calculator, Download, FileUp, MapPin } from "lucide-react";
+import { Bot, Calculator, Download, FileUp, MapPin, Wallet } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OriginBadge, ScientificDisclaimerBanner } from "@/components/Badges";
 import { apiFetch, getApiBaseUrl } from "@/lib/api";
+
+interface FinanceLedgerDto {
+  summary: {
+    totalDeclaredExpenseVnd: number;
+    totalDeclaredAgriAndSupportVnd: number;
+    netDeclaredFarmCashflowVnd: number;
+    scientificBoundaryNotice: string;
+  };
+  entries: {
+    id: string;
+    entryType: string;
+    category: string;
+    amountVnd: number;
+    entryDate: string;
+    notes: string;
+    dataOriginTag: string;
+  }[];
+}
 
 interface FarmDetailDto {
   id: string;
@@ -47,6 +65,10 @@ export default function FarmDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [farm, setFarm] = useState<FarmDetailDto | null>(null);
+  const [ledger, setLedger] = useState<FinanceLedgerDto | null>(null);
+  const [entryType, setEntryType] = useState("CareExpense");
+  const [entryCategory, setEntryCategory] = useState("Ủ phân hữu cơ mụn dừa");
+  const [entryAmount, setEntryAmount] = useState("2500000");
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState("LandDocument");
   const [busy, setBusy] = useState(false);
@@ -55,10 +77,38 @@ export default function FarmDetailPage() {
 
   async function load() {
     try {
-      const data = await apiFetch<FarmDetailDto>(`/api/v1/farms/${params.id}`);
+      const [data, fin] = await Promise.all([
+        apiFetch<FarmDetailDto>(`/api/v1/farms/${params.id}`),
+        apiFetch<FinanceLedgerDto>(`/api/v1/farms/${params.id}/finance-ledger`).catch(() => null),
+      ]);
       setFarm(data);
+      setLedger(fin);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Không thể tải chi tiết vườn.");
+    }
+  }
+
+  async function handleAddFinanceEntry(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      await apiFetch(`/api/v1/farms/${params.id}/finance-ledger`, {
+        method: "POST",
+        body: JSON.stringify({
+          entryType,
+          category: entryCategory,
+          amountVnd: Number(entryAmount),
+          notes: "Ghi nhận trên Sổ Tài chính Xanh nông hộ",
+        }),
+      });
+      setMsg("Đã lưu khoản thu/chi nông nghiệp xanh (USER-DECLARED).");
+      await load();
+    } catch (e2) {
+      setErr(e2 instanceof Error ? e2.message : "Lỗi lưu sổ tài chính.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -249,6 +299,48 @@ export default function FarmDetailPage() {
                 )}
               </div>
             </div>
+          </div>
+
+          <div className="rounded-xl border border-[#d8e2da] bg-white p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="flex items-center gap-2 text-base font-bold text-[#123c29]">
+                <Wallet className="h-5 w-5 text-[#15803d]" /> Sổ Tài chính Xanh & Ngân sách Chuẩn bị MRV (USER-DECLARED)
+              </h2>
+              {ledger && (
+                <div className="flex flex-wrap gap-3 text-xs">
+                  <span>Chi phí xanh: <strong>{ledger.summary.totalDeclaredExpenseVnd.toLocaleString("vi-VN")} đ</strong></span>
+                  <span>Thu nông sản/phụ phẩm: <strong>{ledger.summary.totalDeclaredAgriAndSupportVnd.toLocaleString("vi-VN")} đ</strong></span>
+                  <span>Dòng tiền ròng: <strong className="text-[#15803d]">{ledger.summary.netDeclaredFarmCashflowVnd.toLocaleString("vi-VN")} đ</strong></span>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-[#526158]">
+              {ledger?.summary.scientificBoundaryNotice || "Chỉ ghi nhận chi phí chăm sóc thực tế, phụ phẩm dừa và ngân sách chuẩn bị hồ sơ; không phải doanh thu tín chỉ carbon."}
+            </p>
+            <form onSubmit={handleAddFinanceEntry} className="grid gap-2 sm:grid-cols-4">
+              <select value={entryType} onChange={(e) => setEntryType(e.target.value)} className="rounded-lg border border-[#d8e2da] px-3 py-2 text-xs">
+                <option value="CareExpense">Chi phí chăm sóc xanh</option>
+                <option value="MrvPreparationExpense">Chi phí chuẩn bị hồ sơ MRV</option>
+                <option value="CoconutHarvestRevenue">Thu nông sản dừa</option>
+                <option value="ByProductRevenue">Thu phụ phẩm (gáo/mụn/xơ)</option>
+                <option value="GreenSupportGrantOrLoan">Vốn ưu đãi / Hỗ trợ xanh</option>
+              </select>
+              <input value={entryCategory} onChange={(e) => setEntryCategory(e.target.value)} required placeholder="Hạng mục" className="rounded-lg border border-[#d8e2da] px-3 py-2 text-xs" />
+              <input type="number" min="1000" step="1000" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} required placeholder="Số tiền (VND)" className="rounded-lg border border-[#d8e2da] px-3 py-2 text-xs" />
+              <button type="submit" disabled={busy} className="rounded-lg bg-[#123c29] px-3 py-2 text-xs font-semibold text-white hover:bg-[#15803d]">
+                + Ghi nhận thu/chi
+              </button>
+            </form>
+            {ledger && ledger.entries.length > 0 && (
+              <div className="divide-y divide-[#eef3ef] text-xs">
+                {ledger.entries.map((en) => (
+                  <div key={en.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <span><strong>{en.category}</strong> ({en.entryType})</span>
+                    <span className="font-semibold text-[#123c29]">{en.amountVnd.toLocaleString("vi-VN")} đ</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <ScientificDisclaimerBanner />

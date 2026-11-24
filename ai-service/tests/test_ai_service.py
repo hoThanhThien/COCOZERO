@@ -120,3 +120,43 @@ def test_prompt_injection_inside_pdf_does_not_override_reviewer_requirement():
     assert body["reviewerRequired"] is True
     assert any("Chưa xác minh độc lập" in note for note in body["confidenceNotes"])
 
+
+def test_anti_fraud_detects_greenwashing_annual_claim_density_outlier_and_coord_overlap():
+    fraudulent_pdf = _make_pdf(
+        "Du an dat 400 cay/ha, hap thu 75 tCO2/ha/nam va cam ket loi nhuan doanh thu chac chan 100%."
+    )
+    resp = client.post(
+        "/internal/v1/analyze-document",
+        files={"file": ("fraud.pdf", fraudulent_pdf, "application/pdf")},
+        data={
+            "file_id": "file-fraud",
+            "sha256_hash": "fraudhash",
+            "farm_context_json": '{"farmName":"Vuon Fraud","areaHa":1.0,"treeCount":400,"latitude":10.1652,"longitude":106.4621}',
+            "known_coordinates_json": '[{"farmId":"farm-other","latitude":10.16521,"longitude":106.46211}]',
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["fraudRiskScore"] >= 60.0
+    assert body["fraudRiskLevel"] == "High"
+    codes = {s["code"] for s in body["fraudSignals"]}
+    assert "FRAUD_ANNUAL_RATE_CLAIM" in codes
+    assert "FRAUD_GUARANTEED_REVENUE_CLAIM" in codes
+    assert "FRAUD_DENSITY_OUTLIER" in codes
+    assert "FRAUD_COORDINATE_OVERLAP" in codes
+
+
+def test_green_finance_assistant_guides_cost_budgeting_without_fake_carbon_payout():
+    resp = client.post(
+        "/internal/v1/assistant/query",
+        json={
+            "role": "Farmer",
+            "question": "Chi phí chăm sóc vườn dừa và chuẩn bị hồ sơ MRV nên theo dõi như thế nào?",
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["hasEnoughEvidence"] is True
+    assert any(c["sourceCode"] == "GF1" for c in body["citations"])
+
+

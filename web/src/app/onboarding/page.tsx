@@ -89,6 +89,36 @@ export default function OnboardingPage() {
     }
   }
 
+  async function handleExportMyData() {
+    setError(null);
+    try {
+      const data = await apiFetch<unknown>("/api/v1/me/data-export");
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "cococarbon-my-data.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatusMsg("Đã tải xuống bản sao dữ liệu cá nhân (JSON).");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không xuất được dữ liệu cá nhân.");
+    }
+  }
+
+  async function handleRequestDeletion() {
+    setError(null);
+    try {
+      const res = await apiFetch<{ message: string }>("/api/v1/me/deletion-request", {
+        method: "POST",
+        body: JSON.stringify({ displayName: "Yêu cầu xóa dữ liệu cá nhân từ Web" }),
+      });
+      setStatusMsg(res.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Lỗi gửi yêu cầu xóa dữ liệu.");
+    }
+  }
+
   return (
     <AppShell title="Hồ sơ Cá nhân, Vai trò & Đồng thuận" subtitle="Quản lý thông tin người dùng, consent dữ liệu hiện trường/AI và yêu cầu vai trò (Admin duyệt)">
       {error && <div className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900">{error}</div>}
@@ -191,6 +221,21 @@ export default function OnboardingPage() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-xl border border-[#d8e2da] bg-white p-5">
+        <h2 className="text-base font-bold text-[#123c29]">Quyền dữ liệu cá nhân (Export / Deletion Request)</h2>
+        <p className="mt-1 text-xs text-[#526158]">
+          Người dùng có quyền tải bản sao toàn bộ dữ liệu hồ sơ vườn/đồng thuận của mình hoặc gửi yêu cầu xóa dữ liệu cá nhân.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-3">
+          <button type="button" onClick={handleExportMyData} className="rounded-lg border border-[#123c29] px-4 py-2 text-xs font-semibold text-[#123c29] hover:bg-[#e8f5ec]">
+            Tải xuống dữ liệu cá nhân (JSON)
+          </button>
+          <button type="button" onClick={handleRequestDeletion} className="rounded-lg border border-red-300 px-4 py-2 text-xs font-semibold text-red-800 hover:bg-red-50">
+            Gửi yêu cầu xóa dữ liệu
+          </button>
         </div>
       </section>
     </AppShell>

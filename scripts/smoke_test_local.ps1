@@ -37,19 +37,28 @@ try {
     Write-Host "1. Health AI & API OK (factors=$($apiH.activeResearchFactors))"
 
     $me = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/me" -Headers @{ Authorization = "Bearer dev-demo:farmer" }
-    Write-Host "2. Authenticated /me as: $($me.displayName)"
+    Write-Host "2. Authenticated /me OK (uid=$($me.firebaseUid))"
 
     $calc = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/carbon-calculator/estimate" -Method Post -Headers @{ Authorization = "Bearer dev-demo:farmer"; "Content-Type" = "application/json" } -Body '{"areaHa":1.0,"treeCount":200,"variety":"TallDuaTa","treeAgeYears":10}'
     Write-Host "3. Calculator CTU 2015 result: $($calc.estimatedCO2EquivalentT) tCO2-eq ref"
 
-    $projects = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/projects"
-    Write-Host "4. Projects directory count: $($projects.projects.Count)"
+    $farms = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/farms" -Headers @{ Authorization = "Bearer dev-demo:farmer" }
+    $firstFarmId = $farms[0].id
+    $ledger = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/farms/$firstFarmId/finance-ledger" -Headers @{ Authorization = "Bearer dev-demo:farmer" }
+    Write-Host "4. Green Finance Ledger netDeclaredFarmCashflowVnd=$($ledger.summary.netDeclaredFarmCashflowVnd)"
 
-    $rag = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/ai/assistant/query" -Method Post -Headers @{ Authorization = "Bearer dev-demo:farmer"; "Content-Type" = "application/json" } -Body '{"role":"Farmer","question":"Hệ số CTU 2015 cho Dừa Ta 10 năm tuổi?"}'
-    Write-Host "5. C# -> Python AI Assistant hasEnoughEvidence=$($rag.hasEnoughEvidence), citations=$($rag.citations.Count)"
+    $projects = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/projects"
+    Write-Host "5. Projects directory count: $($projects.projects.Count)"
+
+    $rag = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/ai/assistant/query" -Method Post -Headers @{ Authorization = "Bearer dev-demo:farmer"; "Content-Type" = "application/json" } -Body '{"role":"Farmer","question":"CTU 2015 Dua Ta 10 nam va chi phi cham soc MRV?"}'
+    Write-Host "6. C# -> Python AI Assistant hasEnoughEvidence=$($rag.hasEnoughEvidence), citations=$($rag.citations.Count)"
+
+    $posture = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/admin/security-posture" -Headers @{ Authorization = "Bearer dev-demo:admin" }
+    Write-Host "7. Admin Security Posture OK (auth=$($posture.firebaseTokenVerification))"
 
     $swagger = Invoke-WebRequest "http://127.0.0.1:8080/swagger/v1/swagger.json" -UseBasicParsing
-    Write-Host "6. OpenAPI Swagger JSON bytes=$($swagger.RawContentLength)"
+    $swagger.Content | Out-File "$repoRoot\docs\openapi.json" -Encoding utf8
+    Write-Host "8. Updated docs/openapi.json bytes=$($swagger.RawContentLength)"
 
     Write-Host "ALL LIVE SMOKE CHECKS PASSED!"
 }

@@ -21,21 +21,36 @@ interface AuditLogRow {
   createdAt: string;
 }
 
+interface SecurityPostureDto {
+  firebaseTokenVerification: string;
+  devDemoModeEnabled: boolean;
+  httpsRedirectEnforced: boolean;
+  securityHeaders: string[];
+  uploadPolicy: string;
+  rateLimitPolicy: string;
+  pendingReviews: number;
+  pendingDeletionCount: number;
+  totalAuditLogs: number;
+}
+
 export default function AdminConsolePage() {
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [logs, setLogs] = useState<AuditLogRow[]>([]);
+  const [posture, setPosture] = useState<SecurityPostureDto | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   async function load() {
     if (!getStoredToken()) return;
     try {
-      const [u, l] = await Promise.all([
+      const [u, l, p] = await Promise.all([
         apiFetch<AdminUserRow[]>("/api/v1/admin/users"),
         apiFetch<AuditLogRow[]>("/api/v1/admin/audit-logs?limit=30"),
+        apiFetch<SecurityPostureDto>("/api/v1/admin/security-posture"),
       ]);
       setUsers(u);
       setLogs(l);
+      setPosture(p);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Chỉ tài khoản Admin mới được truy cập bảng quản trị.");
     }
@@ -64,6 +79,26 @@ export default function AdminConsolePage() {
     <AppShell title="Quản trị Hệ thống & Audit Log" subtitle="Kiểm duyệt phân quyền người dùng, quản lý phiên bản hệ số nghiên cứu và nhật ký kiểm toán">
       {err && <div className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900">{err}</div>}
       {msg && <div className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">{msg}</div>}
+
+      {posture && (
+        <div className="mb-6 rounded-xl border border-[#d8e2da] bg-white p-5">
+          <h2 className="text-sm font-bold text-[#123c29]">Trạng thái An ninh mạng & Bảo vệ Dữ liệu (Security Posture)</h2>
+          <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+            <div className="rounded-lg border border-[#e2eae3] p-3">
+              <strong>Auth:</strong> {posture.firebaseTokenVerification}
+              <p className="text-[#526158]">Dev Demo Mode: {posture.devDemoModeEnabled ? "Bật (Development)" : "Tắt (Strict)"}</p>
+            </div>
+            <div className="rounded-lg border border-[#e2eae3] p-3">
+              <strong>Upload & Rate Limit:</strong> {posture.rateLimitPolicy}
+              <p className="text-[#526158]">{posture.uploadPolicy}</p>
+            </div>
+            <div className="rounded-lg border border-[#e2eae3] p-3">
+              <strong>Hàng đợi Rà soát & Privacy:</strong>
+              <p className="text-[#526158]">AI chờ duyệt: {posture.pendingReviews} • Yêu cầu xóa DL: {posture.pendingDeletionCount}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-[#d8e2da] bg-white p-5">

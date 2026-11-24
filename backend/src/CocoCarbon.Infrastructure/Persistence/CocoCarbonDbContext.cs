@@ -27,6 +27,8 @@ public class CocoCarbonDbContext(DbContextOptions<CocoCarbonDbContext> options) 
     public DbSet<AiAnalysis> AiAnalyses => Set<AiAnalysis>();
     public DbSet<ReviewerDecision> ReviewerDecisions => Set<ReviewerDecision>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<FarmFinancialEntry> FarmFinancialEntries => Set<FarmFinancialEntry>();
+    public DbSet<DataDeletionRequest> DataDeletionRequests => Set<DataDeletionRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -176,6 +178,18 @@ public class CocoCarbonDbContext(DbContextOptions<CocoCarbonDbContext> options) 
         {
             e.HasIndex(x => x.CreatedAt);
             e.HasIndex(x => new { x.EntityType, x.EntityId });
+        });
+
+        modelBuilder.Entity<FarmFinancialEntry>(e =>
+        {
+            e.Property(x => x.AmountVnd).HasPrecision(18, 2);
+            e.Property(x => x.Category).HasMaxLength(150).IsRequired();
+            e.HasOne(x => x.Farm).WithMany().HasForeignKey(x => x.FarmId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DataDeletionRequest>(e =>
+        {
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         if (Database.IsSqlite())

@@ -174,4 +174,26 @@ public sealed class AdminController(CocoCarbonDbContext db, IAuditService audit)
             .ToListAsync(ct);
         return Ok(logs);
     }
+
+    [HttpGet("security-posture")]
+    public async Task<IActionResult> GetSecurityPosture([FromServices] IConfiguration config, CancellationToken ct)
+    {
+        var devMockEnabled = string.Equals(config["FIREBASE_AUTH_DEV_ALLOW_MOCK"], "true", StringComparison.OrdinalIgnoreCase);
+        var pendingDeletionCount = await db.DataDeletionRequests.CountAsync(d => d.Status == "Requested", ct);
+        var pendingReviews = await db.AiAnalyses.CountAsync(a => a.ReviewStatus == ReviewDecisionStatus.PendingReview, ct);
+        var totalAuditLogs = await db.AuditLogs.CountAsync(ct);
+
+        return Ok(new
+        {
+            firebaseTokenVerification = "FirebaseAdmin.VerifyIdTokenAsync",
+            devDemoModeEnabled = devMockEnabled,
+            httpsRedirectEnforced = string.Equals(config["ENFORCE_HTTPS_REDIRECT"], "true", StringComparison.OrdinalIgnoreCase),
+            securityHeaders = new[] { "X-Content-Type-Options: nosniff", "X-Frame-Options: DENY", "Referrer-Policy: strict-origin-when-cross-origin", "Permissions-Policy" },
+            uploadPolicy = "Allowlist PDF/JPEG/PNG + Magic-Bytes Signature + SHA-256 + Private HMAC Signed URLs",
+            rateLimitPolicy = "FixedWindow 120 req/min",
+            pendingReviews,
+            pendingDeletionCount,
+            totalAuditLogs
+        });
+    }
 }

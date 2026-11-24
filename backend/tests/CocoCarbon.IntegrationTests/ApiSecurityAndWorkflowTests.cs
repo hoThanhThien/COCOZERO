@@ -56,6 +56,9 @@ public sealed class StubPythonAiServiceClient : IPythonAiServiceClient
                 Evidence: [],
                 ConfidenceNotes: ["Chưa xác minh độc lập"],
                 ReadinessRubric: null,
+                FraudRiskScore: 0.0,
+                FraudRiskLevel: "Unknown",
+                FraudSignals: [],
                 ReviewerRequired: true,
                 Provider: "fallback",
                 ModelName: "none",
@@ -75,6 +78,9 @@ public sealed class StubPythonAiServiceClient : IPythonAiServiceClient
             Evidence: [new AiEvidenceDto(request.FileId.ToString(), 1, "Diện tích: 1.0 ha", "1.0", 0.92, "Trích xuất trang 1")],
             ConfidenceNotes: ["Chưa xác minh độc lập; cần reviewer duyệt."],
             ReadinessRubric: new AiReadinessRubricDto("Mức độ đầy đủ hồ sơ / Project Readiness", 75.0, "Không phải chứng nhận tín chỉ.", []),
+            FraudRiskScore: 15.0,
+            FraudRiskLevel: "Low",
+            FraudSignals: [],
             ReviewerRequired: true,
             Provider: "gemini",
             ModelName: "gemini-4-hydrogen",
@@ -456,5 +462,73 @@ public class ApiSecurityAndWorkflowTests : IClassFixture<CocoCarbonApiFactory>
         var historicItem = histJson.EnumerateArray().First(x => x.GetProperty("id").GetGuid() == calc1Id);
         Assert.Equal(75.2436m, historicItem.GetProperty("estimatedCO2EquivalentT").GetDecimal());
         Assert.Equal("CTU-2015-v1.0", historicItem.GetProperty("factorVersion").GetString());
+    }
+
+    [Fact]
+    public async Task SecurityHeaders_GreenFinanceLedger_And_PrivacyExport_WorkAndEnforceOwnership()
+    {
+        var farmerA = ClientWithToken("valid-farmer-a");
+        var farmerB = ClientWithToken("valid-farmer-b");
+
+        // 1. Verify OWASP Security Headers on health endpoint
+        var healthResp = await ClientWithToken().GetAsync("/health");
+        healthResp.EnsureSuccessStatusCode();
+        Assert.True(healthResp.Headers.Contains("X-Content-Type-Options"));
+        Assert.True(healthResp.Headers.Contains("X-Frame-Options"));
+        Assert.True(healthResp.Headers.Contains("Referrer-Policy"));
+
+        // 2. Farmer A creates farm & records green finance entries
+        var farmResp = await farmerA.PostAsJsonAsync("/api/v1/farms", new
+        {
+            name = "Vườn Tài chính Xanh",
+            province = "Vĩnh Long",
+            commune = "Ba Tri",
+            areaHa = 1.0m,
+            treeCount = 200,
+            variety = "TallDuaTa",
+            ageYears = 10,
+            hasLocationConsent = true,
+            hasPhotoConsent = true
+        });
+        farmResp.EnsureSuccessStatusCode();
+        var farmId = (await farmResp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        var expResp = await farmerA.PostAsJsonAsync($"/api/v1/farms/{farmId}/finance-ledger", new
+        {
+            entryType = "CareExpense",
+            category = "Phân hữu cơ mụn dừa",
+            amountVnd = 3500000m,
+            notes = "Quý 4"
+        });
+        Assert.Equal(HttpStatusCode.Created, expResp.StatusCode);
+
+        var revResp = await farmerA.PostAsJsonAsync($"/api/v1/farms/{farmId}/finance-ledger", new
+        {
+            entryType = "CoconutHarvestRevenue",
+            category = "Bán dừa khô & gáo dừa",
+            amountVnd = 18500000m,
+            notes = "Doanh thu nông sản"
+        });
+        Assert.Equal(HttpStatusCode.Created, revResp.StatusCode);
+
+        var ledgerResp = await farmerA.GetAsync($"/api/v1/farms/{farmId}/finance-ledger");
+        ledgerResp.EnsureSuccessStatusCode();
+        var ledgerJson = await ledgerResp.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(15000000m, ledgerJson.GetProperty("summary").GetProperty("netDeclaredFarmCashflowVnd").GetDecimal());
+
+        // IDOR: Farmer B cannot read or add to Farmer A's finance ledger
+        Assert.Equal(HttpStatusCode.Forbidden, (await farmerB.GetAsync($"/api/v1/farms/{farmId}/finance-ledger")).StatusCode);
+
+        // 3. Privacy data export & deletion request
+        var exportResp = await farmerA.GetAsync("/api/v1/me/data-export");
+        exportResp.EnsureSuccessStatusCode();
+        var exportJson = await exportResp.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(exportJson.GetProperty("farms").GetArrayLength() >= 1);
+
+        var delResp = await farmerA.PostAsJsonAsync("/api/v1/me/deletion-request", new
+        {
+            displayName = "Yêu cầu kiểm thử xóa dữ liệu"
+        });
+        Assert.Equal(HttpStatusCode.Accepted, delResp.StatusCode);
     }
 }

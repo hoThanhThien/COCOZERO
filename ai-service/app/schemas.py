@@ -49,6 +49,13 @@ class ReadinessRubric(BaseModel):
     items: list[ReadinessCriterionItem] = Field(default_factory=list)
 
 
+class FraudSignal(BaseModel):
+    code: str
+    severity: Literal["info", "warning", "high"]
+    evidenceSnippet: str
+    explanation: str
+
+
 class DocumentAnalysisResponse(BaseModel):
     analysisId: str
     fileId: str
@@ -61,6 +68,9 @@ class DocumentAnalysisResponse(BaseModel):
     evidence: list[EvidenceItem] = Field(default_factory=list)
     confidenceNotes: list[str] = Field(default_factory=list)
     readinessRubric: Optional[ReadinessRubric] = None
+    fraudRiskScore: float = Field(default=0.0, ge=0.0, le=100.0)
+    fraudRiskLevel: Literal["Low", "Medium", "High", "Unknown"] = "Low"
+    fraudSignals: list[FraudSignal] = Field(default_factory=list)
     reviewerRequired: bool = True
     provider: str
     modelName: str

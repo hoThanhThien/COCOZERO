@@ -389,6 +389,29 @@ public static class DatabaseSeeder
             Status = RfqStatus.Submitted
         });
 
+        db.FarmFinancialEntries.AddRange(
+            new FarmFinancialEntry
+            {
+                FarmId = farm1.Id,
+                RecordedByUserId = farmer.Id,
+                EntryType = FinancialEntryType.CareExpense,
+                Category = "Ủ phân hữu cơ từ mụn dừa & làm cỏ",
+                AmountVnd = 4500000m,
+                Notes = "[DEMO] Chi phí canh tác xanh quý hiện tại do nông hộ tự ghi nhận",
+                DataOriginTag = DataOriginTag.Demo
+            },
+            new FarmFinancialEntry
+            {
+                FarmId = farm1.Id,
+                RecordedByUserId = farmer.Id,
+                EntryType = FinancialEntryType.CoconutHarvestRevenue,
+                Category = "Thu hoạch dừa khô truyền thống & phụ phẩm gáo dừa",
+                AmountVnd = 28000000m,
+                Notes = "[DEMO] Doanh thu nông sản thực tế (không phải doanh thu tín chỉ carbon)",
+                DataOriginTag = DataOriginTag.Demo
+            }
+        );
+
         db.AuditLogs.Add(new AuditLog
         {
             ActorUserId = adminUser.Id,

@@ -91,6 +91,7 @@ Truy cập Web qua Nginx tại `http://localhost` và Swagger API tại `http://
 ---
 
 ## 4. Tài liệu đi kèm (`docs/`)
+- [Đối chiếu khuyến nghị Hackathon (MoMo Tech Contest 2026)](docs/hackathon-gap-audit.md)
 - [Register nguồn khoa học & quy tắc giới hạn](docs/scientific-sources.md)
 - [Kiến trúc hệ thống & luồng bảo mật](docs/architecture.md)
 - [Mẫu API & Request/Response](docs/api-examples.md)

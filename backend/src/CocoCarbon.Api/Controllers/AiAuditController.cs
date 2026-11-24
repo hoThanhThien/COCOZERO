@@ -58,7 +58,9 @@ public sealed class AiAuditController(
             areaHa = file.Farm.AreaHa,
             treeCount = file.Farm.TreeCount,
             variety = file.Farm.Variety.ToString(),
-            ageYears = file.Farm.AgeYears
+            ageYears = file.Farm.AgeYears,
+            latitude = file.Farm.Latitude,
+            longitude = file.Farm.Longitude
         };
 
         object? projectContext = null;
@@ -87,6 +89,13 @@ public sealed class AiAuditController(
             .Take(500)
             .ToListAsync(ct);
 
+        var knownCoordinates = await db.Farms
+            .AsNoTracking()
+            .Where(f => (file.Farm == null || f.Id != file.Farm.Id) && f.Latitude != null && f.Longitude != null)
+            .Take(500)
+            .Select(f => new KnownCoordinateDto(f.Id.ToString(), f.Latitude!.Value, f.Longitude!.Value))
+            .ToListAsync(ct);
+
         var aiResult = await aiClient.AnalyzeDocumentAsync(
             new AiDocumentAnalysisRequest(
                 FileId: file.Id,
@@ -96,7 +105,8 @@ public sealed class AiAuditController(
                 FileBytes: fileBytes,
                 FarmContext: farmContext,
                 ProjectContext: projectContext,
-                KnownHashes: knownHashes),
+                KnownHashes: knownHashes,
+                KnownCoordinates: knownCoordinates),
             ct);
 
         var entity = new AiAnalysis
@@ -116,7 +126,10 @@ public sealed class AiAuditController(
                 aiResult.Findings,
                 aiResult.MissingFields,
                 aiResult.Duplicates,
-                aiResult.ConfidenceNotes
+                aiResult.ConfidenceNotes,
+                aiResult.FraudRiskScore,
+                aiResult.FraudRiskLevel,
+                aiResult.FraudSignals
             }, JsonOpts),
             EvidenceJson = JsonSerializer.Serialize(aiResult.Evidence, JsonOpts),
             ReadinessRubricJson = JsonSerializer.Serialize(aiResult.ReadinessRubric, JsonOpts),
@@ -146,6 +159,9 @@ public sealed class AiAuditController(
             evidence = aiResult.Evidence,
             confidenceNotes = aiResult.ConfidenceNotes,
             readinessRubric = aiResult.ReadinessRubric,
+            fraudRiskScore = aiResult.FraudRiskScore,
+            fraudRiskLevel = aiResult.FraudRiskLevel,
+            fraudSignals = aiResult.FraudSignals,
             reviewerRequired = true,
             reviewStatus = entity.ReviewStatus,
             modelName = entity.ModelName,

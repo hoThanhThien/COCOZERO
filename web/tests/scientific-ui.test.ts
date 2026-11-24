@@ -40,4 +40,11 @@ describe("CocoCarbon Web Scientific & Security Guardrails", () => {
       expect(fs.existsSync(path.resolve(__dirname, rel)), `Missing page ${rel}`).toBe(true);
     }
   });
+
+  it("documents page renders anti-fraud indicator and farm detail supports green finance ledger", () => {
+    const docsPage = fs.readFileSync(path.resolve(__dirname, "../src/app/documents/page.tsx"), "utf-8");
+    const farmDetailPage = fs.readFileSync(path.resolve(__dirname, "../src/app/farms/[id]/page.tsx"), "utf-8");
+    expect(docsPage).toContain("AI Anti-Fraud Indicator");
+    expect(farmDetailPage).toContain("/finance-ledger");
+  });
 });

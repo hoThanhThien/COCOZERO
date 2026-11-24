@@ -136,6 +136,18 @@
         }
       }
     },
+    "/api/v1/admin/security-posture": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/ai/document-analysis": {
       "post": {
         "tags": [
@@ -770,6 +782,69 @@
         }
       }
     },
+    "/api/v1/farms/{farmId}/finance-ledger": {
+      "get": {
+        "tags": [
+          "GreenFinance"
+        ],
+        "parameters": [
+          {
+            "name": "farmId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "GreenFinance"
+        ],
+        "parameters": [
+          {
+            "name": "farmId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFinanceEntryRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFinanceEntryRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFinanceEntryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -888,6 +963,49 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/RequestRoleUpgradeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/me/data-export": {
+      "get": {
+        "tags": [
+          "HealthAndMe"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/me/deletion-request": {
+      "post": {
+        "tags": [
+          "HealthAndMe"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
               }
             }
           }
@@ -1389,6 +1507,32 @@
         },
         "additionalProperties": false
       },
+      "CreateFinanceEntryRequest": {
+        "type": "object",
+        "properties": {
+          "entryType": {
+            "$ref": "#/components/schemas/FinancialEntryType"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "amountVnd": {
+            "type": "number",
+            "format": "double"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "entryDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateObservationRequest": {
         "type": "object",
         "properties": {
@@ -1566,6 +1710,16 @@
           "Private",
           "CooperativeAuthorized",
           "ReviewerAndAdmin"
+        ],
+        "type": "string"
+      },
+      "FinancialEntryType": {
+        "enum": [
+          "CareExpense",
+          "MrvPreparationExpense",
+          "CoconutHarvestRevenue",
+          "ByProductRevenue",
+          "GreenSupportGrantOrLoan"
         ],
         "type": "string"
       },

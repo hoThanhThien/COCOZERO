@@ -145,6 +145,21 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// OWASP Security Headers on all API responses
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["Permissions-Policy"] = "geolocation=(self), camera=(self)";
+    await next();
+});
+
+if (string.Equals(app.Configuration["ENFORCE_HTTPS_REDIRECT"], "true", StringComparison.OrdinalIgnoreCase))
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseCors("CocoCors");
 app.UseRateLimiter();
 app.UseAuthentication();

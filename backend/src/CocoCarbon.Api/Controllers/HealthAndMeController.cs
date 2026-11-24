@@ -163,4 +163,69 @@ public sealed class HealthAndMeController(CocoCarbonDbContext db, IAuditService 
             message = "Đã ghi nhận yêu cầu nâng quyền ở trạng thái PendingApproval. Chỉ Admin được phê duyệt."
         });
     }
+
+    [HttpGet("/api/v1/me/data-export")]
+    [Authorize]
+    public async Task<IActionResult> ExportMyData(CancellationToken ct)
+    {
+        var userId = User.GetInternalUserId();
+        var user = await db.Users
+            .Include(u => u.UserRoles)
+            .Include(u => u.ConsentRecords)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user is null) return NotFound();
+
+        var farms = await db.Farms
+            .AsNoTracking()
+            .Where(f => f.OwnerUserId == userId)
+            .Select(f => new
+            {
+                f.Id, f.Name, f.Province, f.Commune, f.HistoricalRegion, f.AreaHa, f.TreeCount, f.Variety, f.AgeYears, f.Status, f.DataOriginTag, f.CreatedAt
+            })
+            .ToListAsync(ct);
+
+        var calculations = await db.CarbonCalculations
+            .AsNoTracking()
+            .Where(c => c.UserId == userId)
+            .Select(c => new { c.Id, c.FarmId, c.EstimatedCO2EquivalentT, c.FactorVersion, c.FormulaVersion, c.CreatedAt })
+            .ToListAsync(ct);
+
+        await audit.RecordAsync(userId, user.Email, "USER_DATA_EXPORTED", "User", user.Id.ToString(), null, null, null, ct);
+
+        return Ok(new
+        {
+            exportedAt = DateTimeOffset.UtcNow,
+            profile = new { user.Id, user.Email, user.DisplayName, user.Phone, user.CreatedAt },
+            consents = user.ConsentRecords.Select(c => new { c.ConsentType, c.Granted, c.PolicyVersion, c.RecordedAt }),
+            farms,
+            calculations
+        });
+    }
+
+    [HttpPost("/api/v1/me/deletion-request")]
+    [Authorize]
+    public async Task<IActionResult> RequestDataDeletion([FromBody] UpdateProfileRequest req, CancellationToken ct)
+    {
+        var userId = User.GetInternalUserId();
+        var deletion = new DataDeletionRequest
+        {
+            UserId = userId,
+            Reason = string.IsNullOrWhiteSpace(req.DisplayName) ? "User privacy deletion request" : req.DisplayName.Trim(),
+            Status = "Requested"
+        };
+        db.DataDeletionRequests.Add(deletion);
+        await db.SaveChangesAsync(ct);
+
+        await audit.RecordAsync(userId, User.GetEmail(), "DATA_DELETION_REQUESTED", "DataDeletionRequest", deletion.Id.ToString(),
+            null, new { deletion.Status }, null, ct);
+
+        return Accepted(new
+        {
+            deletion.Id,
+            deletion.Status,
+            message = "Đã ghi nhận yêu cầu xóa/ẩn danh dữ liệu cá nhân theo chính sách quyền riêng tư.",
+            deletion.RequestedAt
+        });
+    }
 }

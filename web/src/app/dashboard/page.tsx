@@ -83,6 +83,30 @@ export default function DashboardPage() {
             </Link>
           </div>
 
+          <div className="rounded-xl border border-[#cfe0d3] bg-white p-5">
+            <h2 className="text-sm font-bold text-[#123c29]">Lộ trình 4 bước hướng dẫn (Human-Centered Guided Flow)</h2>
+            <div className="mt-3 grid gap-3 sm:grid-cols-4">
+              {[
+                { step: "Bước 1", title: "Hồ sơ & Đồng thuận", href: "/onboarding", desc: "Xác nhận GPS, ảnh và bảo vệ dữ liệu cá nhân." },
+                { step: "Bước 2", title: "Vườn dừa & Tài chính xanh", href: "/farms", desc: "Khai báo diện tích, số cây, chi phí chăm sóc thực tế." },
+                { step: "Bước 3", title: "Calculator & AI Chống gian lận", href: "/calculator", desc: "Tính CTU 2015 và kiểm tra bất thường chứng từ." },
+                { step: "Bước 4", title: "HTX & Kết nối RFQ", href: "/projects", desc: "Tổng hợp vùng nguyên liệu & tiếp nhận đối tác." },
+              ].map((s) => (
+                <Link key={s.step} href={s.href} className="rounded-lg border border-[#e2eae3] bg-[#f8fbf8] p-3 hover:border-[#15803d]">
+                  <p className="text-[11px] font-bold uppercase text-[#15803d]">{s.step}</p>
+                  <p className="mt-0.5 text-xs font-bold text-[#123c29]">{s.title}</p>
+                  <p className="mt-1 text-[11px] text-[#526158]">{s.desc}</p>
+                </Link>
+              ))}
+            </div>
+            <div className="mt-3 grid gap-2 rounded-lg border border-[#e6ede7] bg-[#fafcfa] p-3 text-[11px] text-[#435149] sm:grid-cols-4">
+              <div><strong>Biomass:</strong> Khối lượng sinh khối cây dừa (tươi/khô).</div>
+              <div><strong>Carbon stock:</strong> Trữ lượng C tại 1 thời điểm (chưa phải tín chỉ).</div>
+              <div><strong>CO2e tham khảo:</strong> Giá trị CTU 2015 theo tuổi 4 hoặc 10 năm.</div>
+              <div><strong>Issued credit:</strong> Chỉ do registry chính thức phát hành sau VVB.</div>
+            </div>
+          </div>
+
           <div className="rounded-xl border border-[#d8e2da] bg-white p-5">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-bold text-[#123c29]">

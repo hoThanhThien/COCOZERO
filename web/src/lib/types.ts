@@ -121,7 +121,13 @@ export interface AiAnalysisDetailDto {
     missingFields: string[];
     duplicates: { duplicateType: string; matchedId?: string | null; reason: string }[];
     confidenceNotes: string[];
+    fraudRiskScore?: number;
+    fraudRiskLevel?: string;
+    fraudSignals?: { code: string; severity: string; evidenceSnippet: string; explanation: string }[];
   };
+  fraudRiskScore?: number;
+  fraudRiskLevel?: string;
+  fraudSignals?: { code: string; severity: string; evidenceSnippet: string; explanation: string }[];
   evidence: {
     fileId: string;
     pageNumber?: number | null;

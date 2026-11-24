@@ -147,6 +147,35 @@ export default function DocumentsAndAuditPage() {
                   </div>
                 )}
 
+                {(() => {
+                  const fraudScore = selected.fraudRiskScore ?? output?.fraudRiskScore ?? 0;
+                  const fraudLevel = selected.fraudRiskLevel ?? output?.fraudRiskLevel ?? "Low";
+                  const fraudSignals = selected.fraudSignals ?? output?.fraudSignals ?? [];
+                  return (
+                    <div className={`rounded-lg border p-4 ${fraudLevel === "High" ? "border-red-300 bg-red-50/70" : fraudLevel === "Medium" ? "border-amber-300 bg-amber-50/70" : "border-[#dce6de] bg-[#f9fbf9]"}`}>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-bold text-[#123c29]">Chỉ báo Chống lừa đảo & Gian lận hồ sơ (AI Anti-Fraud Indicator)</p>
+                        <span className="text-sm font-extrabold">
+                          {fraudScore}/100 ({fraudLevel})
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-[#526158]">
+                        Kiểm tra tự động: tuyên bố tCO2/ha/năm sai quy chuẩn, cam kết lợi nhuận giả, mật độ bất thường, trùng SHA-256 & chồng lấn GPS.
+                      </p>
+                      {fraudSignals.length > 0 && (
+                        <div className="mt-2 space-y-1.5">
+                          {fraudSignals.map((sig, i) => (
+                            <div key={i} className="rounded border border-red-200 bg-white p-2 text-xs">
+                              <span className="font-bold text-red-800">[{sig.code}]</span> {sig.explanation}
+                              <p className="mt-0.5 italic text-[#526158]">Trích đoạn: &ldquo;{sig.evidenceSnippet}&rdquo;</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <div>
                   <h3 className="text-sm font-bold text-[#123c29]">Trường dữ liệu trích xuất (AI_EXTRACTED)</h3>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">

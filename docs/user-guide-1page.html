@@ -42,9 +42,9 @@
   <h2>3. Quy trình 5 bước trải nghiệm sản phẩm</h2>
   <ol class="steps">
     <li><strong>Đăng nhập & Đồng thuận (<code>/login</code> → <code>/onboarding</code>):</strong> Chọn vai trò DEMO hoặc Google Sign-In, xác nhận đồng thuận lưu vị trí GPS, ảnh hiện trường và xử lý tài liệu AI.</li>
-    <li><strong>Số hóa Vườn dừa (<code>/farms</code>):</strong> Khai báo tên vườn, tỉnh <em>Vĩnh Long</em>, xã thuộc vùng dừa <em>Bến Tre</em>, diện tích (ha), số cây, nhóm giống (<em>Dừa Ta / Xiêm xanh</em>), tuổi cây và tọa độ.</li>
+    <li><strong>Số hóa Vườn dừa & Tài chính xanh (<code>/farms</code>):</strong> Khai báo tên vườn, tỉnh <em>Vĩnh Long</em>, xã vùng dừa <em>Bến Tre</em>, diện tích, số cây, giống, tọa độ GPS và ghi nhận chi phí chăm sóc thực tế trên <em>Sổ Tài chính Xanh</em>.</li>
     <li><strong>CocoCarbon Calculator (<code>/calculator</code>):</strong> Phép tính chạy 100% tại C# backend từ đúng 4 hệ số CTU (2015). Ví dụ: <em>1.0 ha Dừa Ta 10 năm → 75.2436 tCO2 tương đương tham khảo</em> (kèm bối cảnh mật độ 160–240 cây/ha năm 2024; từ chối nội suy nếu nhập tuổi khác 4 hoặc 10).</li>
-    <li><strong>Upload Chứng từ & AI Carbon Auditor (<code>/farms/{id}</code> → <code>/documents</code>):</strong> Tải PDF/ảnh, hệ thống kiểm tra magic bytes + SHA-256, gọi Python FastAPI/Gemini trích xuất trường dữ liệu kèm trang chứng cứ, phát hiện trùng lặp/lệch diện tích và cho phép <em>Reviewer</em> phê duyệt.</li>
+    <li><strong>AI Chống Lừa đảo & Carbon Auditor (<code>/farms/{id}</code> → <code>/documents</code>):</strong> Tải PDF/ảnh, hệ thống kiểm tra magic bytes + SHA-256, phát hiện trùng lặp, chồng lấn GPS, tuyên bố sai <code>tCO2/ha/năm</code> hoặc cam kết lợi nhuận giả kèm trang chứng cứ để <em>Reviewer</em> phê duyệt.</li>
     <li><strong>Hợp tác xã, Danh mục Dự án & RFQ (<code>/cooperative</code>, <code>/projects</code>, <code>/buyer</code>):</strong> Xem tổng hợp diện tích theo ủy quyền HTX, lọc dự án đang chuẩn bị hồ sơ và gửi yêu cầu tìm hiểu (RFQ).</li>
   </ol>
 
