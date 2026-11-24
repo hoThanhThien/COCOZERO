@@ -10,11 +10,12 @@ _STOPWORDS = {
     "trong", "này", "khi", "hay", "hoặc", "được", "không", "cần", "như",
     "thế", "một", "các", "những", "để", "từ", "trên", "dưới", "theo", "về",
     "bằng", "nhưng", "nếu", "thì", "đang", "sẽ", "đã", "là", "có", "gì",
+    "the", "and", "for", "with", "what", "how", "are", "this", "that", "from",
 }
 
-_UNSUPPORTED_FINANCIAL_TERMS = (
-    "giá sàn", "giá bán", "giá tín chỉ", "bao nhiêu tiền", "lợi nhuận",
-    "doanh thu", "trả bao nhiêu", "price", "payout", "revenue",
+_OUT_OF_SCOPE_PATTERNS = (
+    "sao hỏa", "mars", "mặt trăng", "moon", "bitcoin", "crypto", "xổ số", "lottery",
+    "giá sàn tín chỉ carbon tại sao hỏa",
 )
 
 
@@ -23,11 +24,15 @@ def load_curated_sources() -> list[dict[str, Any]]:
         return json.load(f)
 
 
-def retrieve_relevant_sources(question: str, top_k: int = 3) -> list[dict[str, Any]]:
+def retrieve_relevant_sources(
+    question: str,
+    *,
+    category: str | None = None,
+    top_k: int = 4,
+) -> list[dict[str, Any]]:
     q = question.lower()
 
-    # Do not hallucinate financial prices, payouts, or out-of-scope planetary queries
-    if any(term in q for term in _UNSUPPORTED_FINANCIAL_TERMS) or "sao hỏa" in q or "mars" in q:
+    if any(term in q for term in _OUT_OF_SCOPE_PATTERNS):
         return []
 
     tokens = [
@@ -38,16 +43,20 @@ def retrieve_relevant_sources(question: str, top_k: int = 3) -> list[dict[str, A
     scored: list[tuple[int, dict[str, Any]]] = []
 
     for src in sources:
+        if category and src.get("category") != category:
+            continue
         score = 0
         for kw in src.get("keywords", []):
             if kw.lower() in q:
                 score += 3
-        haystack = f"{src['title']} {src['excerpt']}".lower()
+        haystack = f"{src['title']} {src['excerpt']} {src.get('category', '')}".lower()
         for token in tokens:
             if token in haystack:
                 score += 1
         if score >= 3:
-            scored.append((score, src))
+            enriched = dict(src)
+            enriched["relevanceScore"] = round(min(1.0, score / 12.0), 3)
+            scored.append((score, enriched))
 
     scored.sort(key=lambda pair: pair[0], reverse=True)
     return [item[1] for item in scored[:top_k]]

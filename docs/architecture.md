@@ -21,8 +21,8 @@
 ```
 
 ### Quy tắc ranh giới
-1. **C# ASP.NET Core 8 Web API** là nguồn sự thật nghiệp vụ duy nhất: xác minh Firebase ID Token, RBAC + kiểm tra quyền sở hữu đối tượng, tính toán `Coconut Carbon Calculator` bằng kiểu `decimal`, quản lý `ResearchFactors` theo phiên bản, lưu lịch sử tính toán bất biến, quản lý tệp riêng tư và điều phối AI.
-2. **Python FastAPI AI Service** chỉ chạy ở mạng nội bộ (`ai-service:8000`), không expose ra Internet qua Nginx, xác thực với C# qua `X-Internal-Api-Key`, không ghi trực tiếp vào dữ liệu nghiệp vụ cốt lõi.
+1. **C# ASP.NET Core 8 Web API** là nguồn sự thật nghiệp vụ duy nhất: xác minh Firebase ID Token, RBAC + kiểm tra quyền sở hữu đối tượng, tính toán `Coconut Carbon Calculator` bằng kiểu `decimal`, quản lý `ResearchFactors` theo phiên bản, lưu lịch sử tính toán bất biến, quản lý tệp riêng tư và điều phối AI (bao gồm proxy `[Authorize]` cho `/api/ai/assistant`, `/api/financial/*`, `/api/carbon/integrity-check` và làm giàu số liệu thực tế từ `FarmFinancialEntries`).
+2. **Python FastAPI AI Service** chỉ chạy ở mạng nội bộ (`ai-service:8000`), không expose ra Internet qua Nginx, xác thực với C# qua `X-Internal-Api-Key`, không ghi trực tiếp vào dữ liệu nghiệp vụ cốt lõi. Bên trong tích hợp **Python Financial Engine** xác định (tuyệt đối không để LLM tự bịa số), **Intent Classifier + Session Context Manager**, **Gemini Interactions Tool Calling** (kèm retry & `heuristic_fallback`), **5-Category Curated RAG**, và **3-Score Carbon Integrity Checker**.
 3. **Fallback an toàn**: Nếu Python AI Service hoặc Gemini API ngừng hoạt động hoặc quá thời gian chờ (`AI_SERVICE_TIMEOUT_SECONDS`), đăng ký vườn dừa, quản lý hồ sơ, tính toán carbon C# và tạo RFQ vẫn hoạt động bình thường.
 4. **Dữ liệu không đáng tin cậy**: Mọi tệp PDF/ảnh tải lên được coi là untrusted data (không bao giờ là chỉ thị điều khiển prompt), được kiểm tra định dạng, kích thước, magic-bytes signature, băm SHA-256 và lưu ở storage riêng tư với URL ký tạm thời (signed URL).
 

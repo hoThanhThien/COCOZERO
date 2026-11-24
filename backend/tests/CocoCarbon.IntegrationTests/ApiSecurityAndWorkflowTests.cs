@@ -56,6 +56,9 @@ public sealed class StubPythonAiServiceClient : IPythonAiServiceClient
                 Evidence: [],
                 ConfidenceNotes: ["Chưa xác minh độc lập"],
                 ReadinessRubric: null,
+                ProjectReadinessScore: 0.0,
+                DocumentCompletenessScore: 0.0,
+                CarbonIntegrityRiskScore: 0.0,
                 FraudRiskScore: 0.0,
                 FraudRiskLevel: "Unknown",
                 FraudSignals: [],
@@ -78,6 +81,9 @@ public sealed class StubPythonAiServiceClient : IPythonAiServiceClient
             Evidence: [new AiEvidenceDto(request.FileId.ToString(), 1, "Diện tích: 1.0 ha", "1.0", 0.92, "Trích xuất trang 1")],
             ConfidenceNotes: ["Chưa xác minh độc lập; cần reviewer duyệt."],
             ReadinessRubric: new AiReadinessRubricDto("Mức độ đầy đủ hồ sơ / Project Readiness", 75.0, "Không phải chứng nhận tín chỉ.", []),
+            ProjectReadinessScore: 75.0,
+            DocumentCompletenessScore: 100.0,
+            CarbonIntegrityRiskScore: 15.0,
             FraudRiskScore: 15.0,
             FraudRiskLevel: "Low",
             FraudSignals: [],
@@ -90,6 +96,9 @@ public sealed class StubPythonAiServiceClient : IPythonAiServiceClient
 
     public Task<AiAssistantResponse> QueryAssistantAsync(AiAssistantRequest request, CancellationToken cancellationToken = default) =>
         Task.FromResult(new AiAssistantResponse("OK", true, [], "Disclaimer", "gemini-4-hydrogen", false));
+
+    public Task<(int StatusCode, string Body)> ForwardJsonAsync(string relativePath, string rawJson, CancellationToken cancellationToken = default) =>
+        Task.FromResult((200, "{\"ok\":true,\"forwarded\":\"" + relativePath + "\"}"));
 }
 
 public sealed class CocoCarbonApiFactory : WebApplicationFactory<Program>, IDisposable
@@ -530,5 +539,23 @@ public class ApiSecurityAndWorkflowTests : IClassFixture<CocoCarbonApiFactory>
             displayName = "Yêu cầu kiểm thử xóa dữ liệu"
         });
         Assert.Equal(HttpStatusCode.Accepted, delResp.StatusCode);
+
+        // 4. Financial & AI Integrity proxy routes enforce auth & ownership
+        Assert.Equal(HttpStatusCode.Unauthorized, (await ClientWithToken().PostAsJsonAsync("/api/ai/assistant", new { question = "ROI" })).StatusCode);
+        var finCalcResp = await farmerA.PostAsJsonAsync($"/api/financial/calculate?farmId={farmId}", new
+        {
+            farmName = "Vườn Test",
+            investment = new { areaHa = 1.0m, horizonYears = 5 },
+            revenue = new { areaHa = 1.0m, annualCoconutYieldUnitsPerHa = 10000, coconutUnitPriceVnd = 5000 }
+        });
+        finCalcResp.EnsureSuccessStatusCode();
+        // Farmer B cannot enrich with Farmer A's farmId
+        var idorFinResp = await farmerB.PostAsJsonAsync($"/api/financial/calculate?farmId={farmId}", new
+        {
+            farmName = "IDOR Test",
+            investment = new { areaHa = 1.0m, horizonYears = 5 },
+            revenue = new { areaHa = 1.0m }
+        });
+        Assert.Equal(HttpStatusCode.Forbidden, idorFinResp.StatusCode);
     }
 }

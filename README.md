@@ -17,9 +17,9 @@ CocoCarbon AI giúp nông hộ, hợp tác xã, đơn vị phát triển dự á
 
 | Thành phần | Thư mục | Công nghệ | Vai trò |
 | :--- | :--- | :--- | :--- |
-| **Core Backend** | `backend/` | C# ASP.NET Core 8, EF Core, PostgreSQL + PostGIS (SQLite local dev/test), Firebase Admin `.NET` | Nguồn sự thật nghiệp vụ: xác thực Firebase ID token, RBAC, ownership, Calculator CTU 2015, private storage + HMAC signed URL, Projects/RFQ, AuditLogs |
-| **Internal AI Service** | `ai-service/` | Python FastAPI, `google-genai` (`gemini-4-hydrogen` Interactions API), PyMuPDF, Curated RAG | Trích xuất PDF/ảnh có bằng chứng trang/snippet, phát hiện trùng SHA-256 & mâu thuẫn, rubric readiness, trợ lý RAG |
-| **Web Client** | `web/` | Next.js 15.5.7, React 19, TypeScript, Tailwind CSS, Firebase JS SDK | Giao diện Green Fintech + AgriTech: Dashboard, Farm Registry, Calculator, Document Center, AI Audit, HTX, Directory/RFQ, Admin |
+| **Core Backend** | `backend/` | C# ASP.NET Core 8, EF Core, PostgreSQL + PostGIS (SQLite local dev/test), Firebase Admin `.NET` | Nguồn sự thật nghiệp vụ: xác thực Firebase ID token, RBAC, ownership, Calculator CTU 2015, private storage + HMAC signed URL, Projects/RFQ, AuditLogs, proxy bảo mật tới AI Financial & Integrity Engine (`/api/ai/assistant`, `/api/financial/*`, `/api/carbon/integrity-check`) |
+| **Internal AI Service** | `ai-service/` | Python FastAPI, `google-genai` (`gemini-4-hydrogen` Interactions API), PyMuPDF, Python Financial Engine, 5-Category Curated RAG | AI Financial Assistant (Intent + Context + Tool Calling), Python Financial Engine (Cost/Revenue/Profit/ROI/CashFlow/Scenarios/9-part Report), Carbon Integrity 3-score checker & PDF/image anomaly extractor |
+| **Web Client** | `web/` | Next.js 15.5.7, React 19, TypeScript, Tailwind CSS, Firebase JS SDK | Giao diện Green Fintech + AgriTech: Dashboard, Farm Registry, Calculator, Financial Assistant (`/financial-assistant`), Document Center + Integrity 3-Score Checker, AI Audit, HTX, Directory/RFQ, Admin |
 | **Android App** | `android/` | Kotlin, Jetpack Compose, MVVM, Retrofit/OkHttp, Credential Manager + Firebase Auth | Ứng dụng hiện trường cho nông hộ: GPS, Camera/Gallery upload, Calculator (gọi C# API), AI result |
 | **Infrastructure** | `infra/`, `docker-compose.yml` | Docker Compose, Nginx reverse proxy, PostgreSQL/PostGIS, MinIO (S3) | Triển khai Web trước; `postgres` và `ai-service` chỉ chạy ở mạng nội bộ |
 
@@ -67,12 +67,12 @@ Truy cập Web qua Nginx tại `http://localhost` và Swagger API tại `http://
 
 ## 3. Chạy kiểm thử (Tests)
 
-- **C# Unit + Integration Tests** (19 unit tests + 4 integration/security/E2E tests):
+- **C# Unit + Integration Tests** (19 unit tests + 7 integration/security/E2E tests):
   ```bash
   cd backend
   dotnet test CocoCarbon.sln
   ```
-- **Python AI Tests** (5 tests):
+- **Python AI Tests** (15 tests):
   ```bash
   cd ai-service
   uv run pytest -v

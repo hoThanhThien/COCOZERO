@@ -1,65 +1,278 @@
 [
   {
     "sourceCode": "R1",
+    "category": "coconut_research",
     "title": "Nguyễn Thị Thanh Trúc & Lê Anh Tuấn (2015) - Ước lượng khả năng hấp thụ CO2 của cây dừa qua sinh khối tại huyện Giồng Trôm, tỉnh Bến Tre",
     "url": "https://ctujsvn.ctu.edu.vn/index.php/ctujsvn/article/view/2264",
-    "keywords": ["ctu", "2015", "giồng trôm", "bến tre", "dừa ta", "xiêm xanh", "24.518", "75.2436", "20.4583", "69.9189", "hệ số", "sinh khối", "rễ", "r/s"],
+    "metadata": {
+      "authors": "Nguyễn Thị Thanh Trúc & Lê Anh Tuấn",
+      "year": 2015,
+      "location": "Giồng Trôm, Bến Tre (nay Vĩnh Long)",
+      "sampleSize": "12 trees across 4 plots (10x10m)"
+    },
+    "keywords": [
+      "ctu",
+      "2015",
+      "giồng trôm",
+      "bến tre",
+      "dừa ta",
+      "xiêm xanh",
+      "24.518",
+      "75.2436",
+      "20.4583",
+      "69.9189",
+      "hệ số",
+      "sinh khối",
+      "rễ",
+      "r/s",
+      "coconut biomass",
+      "co2"
+    ],
     "excerpt": "Nghiên cứu tại Giồng Trôm (4 ô 10m x 10m, 12 cây mẫu) báo cáo: Dừa cao (Dừa Ta) 4 năm = 24.518 tCO2/ha, 10 năm = 75.2436 tCO2/ha; Dừa thấp (Xiêm xanh) 4 năm = 20.4583 tCO2/ha, 10 năm = 69.9189 tCO2/ha. Dùng R/S = 1/5 và hệ số C 0.47-0.50 (IPCC 2003). Không theo dõi tăng trưởng 1 năm nên không phải tCO2/ha/năm và không nội suy giữa các cấp tuổi."
   },
   {
     "sourceCode": "R2",
+    "category": "agri_operations",
     "title": "Cục Đổi mới sáng tạo, Chuyển đổi xanh và Khuyến công (02/07/2024) - Thực trạng canh tác dừa tại tỉnh Bến Tre",
     "url": "https://khuyennongvn.gov.vn/",
-    "keywords": ["mật độ", "160", "240", "150 hộ", "khảo sát 2024", "châu thành", "ba tri", "thạnh phú", "bình đại"],
-    "excerpt": "Khảo sát 150 hộ tại 5 huyện Châu Thành, Giồng Trôm, Ba Tri, Thạnh Phú và Bình Đại ghi nhận mật độ trồng dừa dao động 160-240 cây/ha. Đây là số liệu khảo sát nông học mô tả, không phải ngưỡng chứng nhận carbon."
+      "year": 2024,
+      "householdsSurveyed": 150,
+      "districts": [
+        "Châu Thành",
+        "Giồng Trôm",
+        "Ba Tri",
+        "Thạnh Phú",
+        "Bình Đại"
+      ]
+    },
+    "keywords": [
+      "mật độ",
+      "160",
+      "240",
+      "150 hộ",
+      "khảo sát 2024",
+      "châu thành",
+      "ba tri",
+      "thạnh phú",
+      "bình đại",
+      "canh tác",
+      "density",
+      "planting"
+    ],
+    "excerpt": "Khảo sát 150 hộ tại 5 huyện Châu Thành, Giồng Trôm, Ba Tri, Thạnh Phú và Bình Đại ghi nhận mật độ trồng dừa dao động 160-240 cây/ha và các thực hành chăm sóc dừa tại vùng Bến Tre. Đây là số liệu khảo sát nông học mô tả, không phải ngưỡng chứng nhận carbon."
   },
   {
     "sourceCode": "R3",
+    "category": "carbon_mrv",
     "title": "2006 IPCC Guidelines, Vol. 4, Ch. 5 - Cropland, Table 5.3",
     "url": "https://www.ipcc-nggip.iges.or.jp/public/2006gl/vol4.html",
-    "keywords": ["ipcc 2006", "table 5.3", "196", "above-ground biomass", "sinh khối khô", "tier 1"],
+    "metadata": {
+      "year": 2006,
+      "tier": "Tier 1",
+      "unit": "tonnes dry biomass/ha"
+    },
+    "keywords": [
+      "ipcc 2006",
+      "table 5.3",
+      "196",
+      "above-ground biomass",
+      "sinh khối khô",
+      "tier 1",
+      "ipcc"
+    ],
     "excerpt": "IPCC 2006 Table 5.3 ghi nhận Coconut - SE Asia = 196 tonnes/ha above-ground dry biomass (sinh khối khô trên mặt đất, không phải tCO2/ha và không trộn với hệ số CTU 2015)."
   },
   {
     "sourceCode": "R4",
+    "category": "carbon_mrv",
     "title": "2019 Refinement to the 2006 IPCC Guidelines, Vol. 4, Ch. 5 - Cropland",
     "url": "https://www.ipcc-nggip.iges.or.jp/public/2019rf/vol4.html",
-    "keywords": ["ipcc 2019", "tier 2", "tier 3", "gain-loss", "stock-difference", "perennial woody"],
+    "metadata": {
+      "year": 2019,
+      "methods": [
+        "Gain-Loss",
+        "Stock-Difference"
+      ],
+      "tiers": [
+        "Tier 1",
+        "Tier 2",
+        "Tier 3"
+      ]
+    },
+    "keywords": [
+      "ipcc 2019",
+      "tier 2",
+      "tier 3",
+      "gain-loss",
+      "stock-difference",
+      "perennial woody",
+      "mrv",
+      "đo đạc"
+    ],
     "excerpt": "IPCC 2019 Refinement xem dừa là perennial woody cropland, mô tả phương pháp gain-loss và stock-difference. Khuyến nghị ưu tiên hệ số quốc gia/vùng (Tier 2); Tier 3 đòi hỏi mô hình chi tiết và validation độc lập."
   },
   {
     "sourceCode": "R5",
+    "category": "carbon_mrv",
     "title": "Verra VM0042 v2.2 Improved Agricultural Land Management (và Clarifications 11/06/2026)",
     "url": "https://verra.org/methodologies/vm0042-methodology-for-improved-agricultural-land-management-v2-2/",
-    "keywords": ["verra", "vm0042", "soc", "baseline", "additionality", "leakage", "methodology"],
+    "metadata": {
+      "standard": "Verra VCS",
+      "version": "2.2",
+      "effectiveDate": "2025-10-21",
+      "clarificationsDate": "2026-06-11"
+    },
+    "keywords": [
+      "verra",
+      "vm0042",
+      "soc",
+      "baseline",
+      "additionality",
+      "leakage",
+      "methodology",
+      "vcs"
+    ],
     "excerpt": "VM0042 v2.2 áp dụng cho cải thiện quản lý đất nông nghiệp và giảm phát thải/tăng SOC trong phạm vi phương pháp luận; không tự động áp dụng cho sinh khối thân dừa nếu chưa kiểm tra baseline, additionality, leakage, monitoring và verification."
   },
   {
     "sourceCode": "R7",
+    "category": "carbon_mrv",
     "title": "Gold Standard Soil Organic Carbon Model Requirements and Guidelines v1.0 (08/09/2025)",
     "url": "https://globalgoals.goldstandard.org/",
-    "keywords": ["gold standard", "soc", "soil organic carbon", "validation", "uncertainty"],
+    "metadata": {
+      "standard": "Gold Standard",
+      "version": "1.0",
+      "releaseDate": "2025-09-08"
+    },
+    "keywords": [
+      "gold standard",
+      "soc",
+      "soil organic carbon",
+      "validation",
+      "uncertainty",
+      "mrv"
+    ],
     "excerpt": "Hướng dẫn yêu cầu đối với mô hình carbon hữu cơ trong đất (SOC): chọn mô hình, hiệu chuẩn, validation, bất định và xác minh theo thời gian; không phải mô hình toàn bộ sinh khối cây dừa."
   },
   {
     "sourceCode": "R8",
+    "category": "coconut_research",
     "title": "Mugasha & Zahabu (2026) - Allometric models for Cocos nucifera L. in Tanzania",
     "url": "https://link.springer.com/",
-    "keywords": ["allometric", "tanzania", "dbh", "chiều cao", "đường kính", "2026"],
+    "metadata": {
+      "year": 2026,
+      "region": "Tanzania",
+      "transferableDirectly": false
+    },
+    "keywords": [
+      "allometric",
+      "tanzania",
+      "dbh",
+      "chiều cao",
+      "đường kính",
+      "2026",
+      "sinh khối"
+    ],
     "excerpt": "Nghiên cứu allometric tại Tanzania cho thấy có thể phát triển mô hình sinh khối theo đường kính và chiều cao, nhưng không được bê nguyên hệ số Tanzania sang Bến Tre / Vĩnh Long nếu chưa hiệu chuẩn địa phương."
   },
   {
     "sourceCode": "R12",
+    "category": "carbon_regulation",
     "title": "Bối cảnh thí điểm sàn giao dịch carbon Việt Nam (Nghị định 29/2026/NĐ-CP)",
     "url": "https://baochinhphu.vn/",
-    "keywords": ["nghị định 29", "29/2026", "sàn giao dịch", "tín chỉ", "pháp lý", "mua bán", "registry", "vĩnh long"],
+    "metadata": {
+      "decree": "29/2026/ND-CP",
+      "jurisdiction": "Việt Nam",
+      "provinceContext": "Vĩnh Long (vùng dừa Bến Tre)"
+    },
+    "keywords": [
+      "nghị định 29",
+      "29/2026",
+      "sàn giao dịch",
+      "tín chỉ",
+      "pháp lý",
+      "mua bán",
+      "registry",
+      "vĩnh long",
+      "carbon regulation",
+      "credit"
+    ],
     "excerpt": "Nghị định 29/2026/NĐ-CP là bối cảnh pháp lý thị trường carbon trong nước. CocoCarbon AI là công cụ chuẩn bị dữ liệu và kết nối RFQ, không phải sàn giao dịch hay registry được cấp phép; tỉnh Vĩnh Long theo địa giới hiện hành bao gồm vùng dừa Bến Tre."
   },
   {
+    "sourceCode": "AGRI1",
+    "category": "agri_operations",
+    "title": "Khung hoạt động canh tác vườn dừa bền vững & phụ phẩm tuần hoàn (Vùng dừa Bến Tre - Vĩnh Long)",
+    "url": "https://cococarbon.local/docs/agri-operations-guide",
+    "metadata": {
+      "scope": "Coconut Orchard Operations",
+      "byProducts": [
+        "gáo dừa",
+        "xơ dừa",
+        "mụn dừa"
+      ],
+      "costDrivers": [
+        "phân hữu cơ",
+        "nạo vét mương",
+        "nhân công thu hoạch"
+      ]
+    },
+    "keywords": [
+      "canh tác",
+      "phân bón",
+      "hữu cơ",
+      "mụn dừa",
+      "xơ dừa",
+      "gáo dừa",
+      "năng suất",
+      "sản lượng",
+      "thu hoạch",
+      "phụ phẩm",
+      "yield",
+      "fertilizer",
+      "mulch",
+      "by-product"
+    ],
+    "excerpt": "Hoạt động vận hành vườn dừa gồm: bón phân/ủ mụn dừa hữu cơ, giữ ẩm mùa khô/xâm nhập mặn, nạo vét rãnh tưới và tận dụng phụ phẩm (gáo, xơ, mụn dừa). Trong lập kế hoạch tài chính, sản lượng và chi phí chăm sóc phải lấy từ dữ liệu nông hộ thực tế hoặc giả định minh bạch theo mùa vụ."
+  },
+  {
     "sourceCode": "GF1",
+    "category": "financial_management",
     "title": "Hướng dẫn Lập kế hoạch Tài chính Xanh & Chuẩn bị Hồ sơ Vườn dừa CocoCarbon AI",
     "url": "https://cococarbon.local/docs/green-finance-guide",
-    "keywords": ["chi phí", "chăm sóc", "tài chính", "ngân sách", "dòng tiền", "phân bón", "hữu cơ", "mụn dừa", "tín dụng xanh", "lập kế hoạch", "chuẩn bị hồ sơ", "mrv"],
-    "excerpt": "Nông hộ và HTX nên theo dõi chi phí canh tác xanh thực tế (ủ mụn/xơ dừa hữu cơ, chăm sóc vườn, đo đạc ranh giới) và doanh thu nông sản/phụ phẩm dừa qua Sổ Tài chính Xanh (USER-DECLARED). Chi phí chuẩn bị hồ sơ MRV cần tách bạch với doanh thu vườn và tuyệt đối không coi ước tính CTU 2015 là thu nhập carbon bảo đảm."
+      "domain": "Green Farm Financial Management",
+      "metrics": [
+        "CAPEX",
+        "OPEX",
+        "CashFlow",
+        "ROI",
+        "Payback",
+        "NPV"
+      ]
+    },
+    "keywords": [
+      "chi phí",
+      "chăm sóc",
+      "tài chính",
+      "ngân sách",
+      "dòng tiền",
+      "roi",
+      "lợi nhuận",
+      "doanh thu",
+      "kịch bản",
+      "hoàn vốn",
+      "npv",
+      "đầu tư",
+      "tín dụng xanh",
+      "mrv",
+      "cost",
+      "revenue",
+      "profit",
+      "cash flow",
+      "investment",
+      "scenario",
+      "budget"
+    ],
+    "excerpt": "Quản lý tài chính vườn dừa bền vững dựa trên: (1) CAPEX ban đầu + ngân sách MRV, (2) OPEX chăm sóc/nhân công hằng năm, (3) Dòng thu nông sản dừa + phụ phẩm (xơ/mụn/gáo) + hỗ trợ xanh. Chỉ tiêu ROI, NPV và thời gian hoàn vốn được tính bằng Python Financial Engine trên giả định tường minh; không coi trữ lượng carbon CTU 2015 là thu nhập chắc chắn."
   }
 ]

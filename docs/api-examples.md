@@ -47,3 +47,22 @@ Nếu tuổi khác `4` hoặc `10` (vd: `7`), API trả `422 Unprocessable Entit
 - `GET/POST /api/v1/projects`, `GET/PATCH /api/v1/projects/{id}`, `POST /api/v1/projects/{id}/farms`
 - `GET/POST /api/v1/rfqs`, `POST /api/v1/rfqs/{id}/respond`
 - `GET /api/v1/admin/users`, `POST /api/v1/admin/users/{id}/roles`, `GET/POST /api/v1/admin/research-factors`, `GET /api/v1/admin/review-queue`, `GET /api/v1/admin/audit-logs`
+
+
+## 5. AI Financial Assistant, Financial Engine & Carbon Integrity (`/api/ai/*`, `/api/financial/*`, `/api/carbon/*`)
+Các endpoint này được C# ASP.NET Core API bảo vệ bằng `[Authorize]` (Firebase Bearer Token / `dev-demo:*`), tự động làm giàu số liệu sổ thu chi thực tế từ `FarmFinancialEntries` khi truyền `?farmId=<uuid>`, và chuyển tiếp nội bộ tới Python Financial & AI Engine:
+
+- **AI Financial Assistant (`POST /api/ai/assistant`)**: phân loại intent song ngữ VI/EN, giữ session context, truy xuất RAG 5 nhóm nguồn (`R1`-`R12`, `AGRI1`, `GF1`), chạy Gemini Interactions Tool Calling (hoặc Heuristic Tool Fallback) để tính bằng Python Financial Engine:
+  ```bash
+  curl -X POST https://your-domain/api/ai/assistant \
+    -H "Authorization: Bearer <FIREBASE_ID_TOKEN>" \
+    -H "Content-Type: application/json" \
+    -d '{"role":"Farmer","question":"Tính ROI và dòng tiền 5 năm cho vườn dừa 1.5 ha","financialInput":{"farmName":"Vườn Dừa Bến Tre","investment":{"areaHa":1.5,"landPrepAndSeedlingsVnd":12000000,"irrigationAndEquipmentVnd":18000000,"mrvBaselineAndAuditBudgetVnd":5000000,"annualCareAndFertilizerPerHaVnd":9000000,"annualLaborAndHarvestPerHaVnd":7000000,"annualMonitoringAndAdminVnd":2000000,"horizonYears":5},"revenue":{"areaHa":1.5,"annualCoconutYieldUnitsPerHa":9000,"coconutUnitPriceVnd":6500,"annualByProductRevenuePerHaVnd":2500000},"discountRate":0.08}}'
+  ```
+- **Financial Engine Endpoints**:
+  - `POST /api/financial/calculate?farmId=<optional>` -> trả `costBreakdown`, `revenueBreakdown`, `profitAndRoi` (`roiPercentAgriOnly`, `npvAgriOnlyVnd`, `paybackPeriodYears`, `benefitCostRatio`), `cashFlowSchedule[]`, `actualVsEstimateNotes[]`.
+  - `POST /api/financial/scenarios` -> so sánh kịch bản cơ sở với biến động giá/sản lượng/chi phí và kịch bản carbon giả định (`HYPOTHETICAL_SCENARIO`).
+  - `POST /api/financial/analyze?farmId=<optional>` -> kết hợp tính toán Python, mô phỏng kịch bản và phân tích AI kèm nguồn RAG.
+  - `POST /api/financial/reports?farmId=<optional>` -> báo cáo 9 phần (`executiveSummary`, `investmentOverview`, `revenueAnalysis`, `costAnalysis`, `roiAnalysis`, `cashFlowAnalysis`, `riskAssessment`, `recommendations`, `dataSourcesAndAssumptions`).
+- **Carbon Integrity 3-Score Check (`POST /api/carbon/integrity-check`)**:
+  Tách biệt rõ `projectReadinessScore`, `documentCompletenessScore` và `carbonIntegrityRiskScore` + `explainableAlerts[]` (`IncompleteDocuments_NotFraud` khi chỉ thiếu hồ sơ mà không có dấu hiệu gian lận).

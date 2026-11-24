@@ -78,6 +78,9 @@ public sealed record AiDocumentAnalysisResponse(
     [property: JsonPropertyName("evidence")] List<AiEvidenceDto> Evidence,
     [property: JsonPropertyName("confidenceNotes")] List<string> ConfidenceNotes,
     [property: JsonPropertyName("readinessRubric")] AiReadinessRubricDto? ReadinessRubric,
+    [property: JsonPropertyName("projectReadinessScore")] double ProjectReadinessScore,
+    [property: JsonPropertyName("documentCompletenessScore")] double DocumentCompletenessScore,
+    [property: JsonPropertyName("carbonIntegrityRiskScore")] double CarbonIntegrityRiskScore,
     [property: JsonPropertyName("fraudRiskScore")] double FraudRiskScore,
     [property: JsonPropertyName("fraudRiskLevel")] string FraudRiskLevel,
     [property: JsonPropertyName("fraudSignals")] List<AiFraudSignalDto> FraudSignals,
@@ -114,6 +117,11 @@ public interface IPythonAiServiceClient
 
     Task<AiAssistantResponse> QueryAssistantAsync(
         AiAssistantRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<(int StatusCode, string Body)> ForwardJsonAsync(
+        string relativePath,
+        string rawJson,
         CancellationToken cancellationToken = default);
 }
 
@@ -221,6 +229,40 @@ public sealed class PythonAiServiceClient : IPythonAiServiceClient
         }
     }
 
+    public async Task<(int StatusCode, string Body)> ForwardJsonAsync(
+        string relativePath,
+        string rawJson,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var msg = new HttpRequestMessage(HttpMethod.Post, relativePath.TrimStart('/'))
+            {
+                Content = new StringContent(rawJson, Encoding.UTF8, "application/json")
+            };
+            var internalKey = _config["AI_SERVICE_INTERNAL_KEY"];
+            if (!string.IsNullOrWhiteSpace(internalKey))
+            {
+                msg.Headers.Add("X-Internal-Api-Key", internalKey);
+            }
+
+            using var resp = await _http.SendAsync(msg, cancellationToken);
+            var body = await resp.Content.ReadAsStringAsync(cancellationToken);
+            return ((int)resp.StatusCode, body);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            _logger.LogWarning(ex, "ForwardJsonAsync to {Path} failed.", relativePath);
+            var err = JsonSerializer.Serialize(new
+            {
+                errorCode = "AI_SERVICE_UNAVAILABLE",
+                message = "Dịch vụ AI / Financial Engine tạm thời không khả dụng.",
+                isFallback = true
+            });
+            return (503, err);
+        }
+    }
+
     private static AiDocumentAnalysisResponse BuildFallbackAnalysis(Guid fileId, string reason) =>
         new(
             AnalysisId: Guid.NewGuid().ToString(),
@@ -242,6 +284,9 @@ public sealed class PythonAiServiceClient : IPythonAiServiceClient
             Evidence: [],
             ConfidenceNotes: ["Chưa xác minh độc lập; không có trích xuất AI hoàn chỉnh."],
             ReadinessRubric: null,
+            ProjectReadinessScore: 0.0,
+            DocumentCompletenessScore: 0.0,
+            CarbonIntegrityRiskScore: 0.0,
             FraudRiskScore: 0.0,
             FraudRiskLevel: "Unknown",
             FraudSignals: [],

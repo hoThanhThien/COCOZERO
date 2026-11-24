@@ -1,0 +1,406 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+import uuid
+from app.schemas_financial import (
+    CashFlowYearRow,
+    FinancialCalculationRequest,
+    FinancialCalculationResult,
+    FinancialReportResponse,
+    FinancialReportSection,
+    InvestmentCostBreakdown,
+    InvestmentCostInput,
+    ProfitAndRoiMetrics,
+    RevenueBreakdown,
+    RevenueInput,
+    ScenarioComparisonItem,
+    ScenarioSimulationRequest,
+    ScenarioSimulationResult,
+    ScenarioVariation,
+)
+
+
+def calculate_investment_cost(inv: InvestmentCostInput) -> InvestmentCostBreakdown:
+    """Deterministic Investment & Operating Cost Calculator."""
+    initial_capex = round(
+        inv.landPrepAndSeedlingsVnd
+        + inv.irrigationAndEquipmentVnd
+        + inv.mrvBaselineAndAuditBudgetVnd,
+        2,
+    )
+    annual_opex = round(
+        (inv.annualCareAndFertilizerPerHaVnd + inv.annualLaborAndHarvestPerHaVnd) * inv.areaHa
+        + inv.annualMonitoringAndAdminVnd,
+        2,
+    )
+    total_opex = round(annual_opex * inv.horizonYears, 2)
+    total_cost = round(initial_capex + total_opex, 2)
+    mrv_total = inv.mrvBaselineAndAuditBudgetVnd + (inv.annualMonitoringAndAdminVnd * inv.horizonYears)
+    mrv_share = round((mrv_total / total_cost) * 100.0, 2) if total_cost > 0 else 0.0
+
+    return InvestmentCostBreakdown(
+        initialCapexVnd=initial_capex,
+        annualOpexVnd=annual_opex,
+        totalOpexOverHorizonVnd=total_opex,
+        totalInvestmentCostVnd=total_cost,
+        capexPerHaVnd=round(initial_capex / inv.areaHa, 2),
+        annualOpexPerHaVnd=round(annual_opex / inv.areaHa, 2),
+        mrvPrepSharePercent=mrv_share,
+        dataCategory="ACTUAL_DATA" if inv.isActualData else "USER_ASSUMPTION",
+    )
+
+
+def estimate_revenue(rev: RevenueInput, horizon_years: int) -> RevenueBreakdown:
+    """Deterministic Agricultural Revenue + Explicit Hypothetical Carbon Scenario Estimator."""
+    annual_harvest = round(rev.areaHa * rev.annualCoconutYieldUnitsPerHa * rev.coconutUnitPriceVnd, 2)
+    annual_byproduct = round(rev.areaHa * rev.annualByProductRevenuePerHaVnd, 2)
+    annual_support = round(rev.annualGreenSupportGrantVnd, 2)
+    annual_agri_total = round(annual_harvest + annual_byproduct + annual_support, 2)
+    total_agri_horizon = round(annual_agri_total * horizon_years, 2)
+
+    carbon_included = (
+        rev.assumedEligibleCarbonTonnesTotal > 0
+        and rev.assumedCarbonPricePerTonneVnd > 0
+        and rev.carbonRealizationProbability > 0
+    )
+    hypothetical_carbon_total = (
+        round(
+            rev.assumedEligibleCarbonTonnesTotal
+            * rev.assumedCarbonPricePerTonneVnd
+            * rev.carbonRealizationProbability,
+            2,
+        )
+        if carbon_included
+        else 0.0
+    )
+
+    carbon_disclaimer = (
+        f"Kịch bản giả định: {rev.assumedEligibleCarbonTonnesTotal} tCO2e × "
+        f"{rev.assumedCarbonPricePerTonneVnd:,.0f} VND/t × xác suất thực hiện {rev.carbonRealizationProbability:.0%}. "
+        "Đây là kịch bản minh họa có điều kiện, KHÔNG phải tín chỉ đã phát hành hay doanh thu bảo đảm."
+        if carbon_included
+        else "Chưa bật kịch bản doanh thu carbon giả định (chỉ tính doanh thu nông sản/phụ phẩm dừa và hỗ trợ xanh)."
+    )
+
+    return RevenueBreakdown(
+        annualCoconutHarvestRevenueVnd=annual_harvest,
+        annualByProductRevenueVnd=annual_byproduct,
+        annualGreenSupportVnd=annual_support,
+        annualTotalAgriRevenueVnd=annual_agri_total,
+        totalAgriRevenueOverHorizonVnd=total_agri_horizon,
+        hypotheticalCarbonRevenueTotalVnd=hypothetical_carbon_total,
+        carbonScenarioIncluded=carbon_included,
+        carbonScenarioDisclaimer=carbon_disclaimer,
+        dataCategory="HYPOTHETICAL_SCENARIO" if carbon_included else "MODEL_ESTIMATE",
+    )
+
+
+def build_cash_flow_schedule(
+    cost: InvestmentCostBreakdown,
+    revenue: RevenueBreakdown,
+    horizon_years: int,
+    discount_rate: float,
+) -> tuple[list[CashFlowYearRow], float, int | None, float | None]:
+    """Build multi-year cash flow schedule, NPV (agri only), break-even year, and payback years."""
+    rows: list[CashFlowYearRow] = []
+    cum_agri = -cost.initialCapexVnd
+    cum_with_carbon = -cost.initialCapexVnd
+    npv_agri = -cost.initialCapexVnd
+    break_even_year: int | None = None
+    payback_years: float | None = None
+
+    # Year 0 initial investment
+    rows.append(
+        CashFlowYearRow(
+            year=0,
+            capexVnd=cost.initialCapexVnd,
+            opexVnd=0.0,
+            agriRevenueVnd=0.0,
+            hypotheticalCarbonRevenueVnd=0.0,
+            netCashFlowAgriOnlyVnd=-cost.initialCapexVnd,
+            cumulativeCashFlowAgriOnlyVnd=round(cum_agri, 2),
+            netCashFlowWithCarbonScenarioVnd=-cost.initialCapexVnd,
+            cumulativeCashFlowWithCarbonScenarioVnd=round(cum_with_carbon, 2),
+        )
+    )
+
+    # Distribute optional hypothetical carbon scenario evenly only from year 2 onward (never year 0/1)
+    carbon_years = max(1, horizon_years - 1)
+    annual_hyp_carbon = (
+        round(revenue.hypotheticalCarbonRevenueTotalVnd / carbon_years, 2)
+        if revenue.carbonScenarioIncluded
+        else 0.0
+    )
+
+    for yr in range(1, horizon_years + 1):
+        opex = cost.annualOpexVnd
+        agri_rev = revenue.annualTotalAgriRevenueVnd
+        carbon_rev = annual_hyp_carbon if (revenue.carbonScenarioIncluded and (horizon_years == 1 or yr >= 2)) else 0.0
+
+        net_agri = round(agri_rev - opex, 2)
+        net_with_carbon = round(net_agri + carbon_rev, 2)
+
+        prev_cum = cum_agri
+        cum_agri = round(cum_agri + net_agri, 2)
+        cum_with_carbon = round(cum_with_carbon + net_with_carbon, 2)
+
+        if break_even_year is None and cum_agri >= 0:
+            break_even_year = yr
+            if net_agri > 0 and prev_cum < 0:
+                payback_years = round((yr - 1) + abs(prev_cum) / net_agri, 2)
+            else:
+                payback_years = float(yr)
+
+        npv_agri += net_agri / ((1.0 + discount_rate) ** yr)
+
+        rows.append(
+            CashFlowYearRow(
+                year=yr,
+                capexVnd=0.0,
+                opexVnd=opex,
+                agriRevenueVnd=agri_rev,
+                hypotheticalCarbonRevenueVnd=carbon_rev,
+                netCashFlowAgriOnlyVnd=net_agri,
+                cumulativeCashFlowAgriOnlyVnd=cum_agri,
+                netCashFlowWithCarbonScenarioVnd=net_with_carbon,
+                cumulativeCashFlowWithCarbonScenarioVnd=cum_with_carbon,
+            )
+        )
+
+    return rows, round(npv_agri, 2), break_even_year, payback_years
+
+
+def run_financial_calculation(req: FinancialCalculationRequest) -> FinancialCalculationResult:
+    """Master deterministic Financial Engine entry point."""
+    cost = calculate_investment_cost(req.investment)
+    rev = estimate_revenue(req.revenue, req.investment.horizonYears)
+    rows, npv_agri, break_even_year, payback_years = build_cash_flow_schedule(
+        cost, rev, req.investment.horizonYears, req.discountRate
+    )
+
+    annual_net_agri = round(rev.annualTotalAgriRevenueVnd - cost.annualOpexVnd, 2)
+    total_net_agri = round(rev.totalAgriRevenueOverHorizonVnd - cost.totalInvestmentCostVnd, 2)
+    total_net_with_carbon = round(total_net_agri + rev.hypotheticalCarbonRevenueTotalVnd, 2)
+
+    margin = (
+        round((total_net_agri / rev.totalAgriRevenueOverHorizonVnd) * 100.0, 2)
+        if rev.totalAgriRevenueOverHorizonVnd > 0
+        else 0.0
+    )
+    roi_agri = (
+        round((total_net_agri / cost.totalInvestmentCostVnd) * 100.0, 2)
+        if cost.totalInvestmentCostVnd > 0
+        else 0.0
+    )
+    roi_with_carbon = (
+        round((total_net_with_carbon / cost.totalInvestmentCostVnd) * 100.0, 2)
+        if (rev.carbonScenarioIncluded and cost.totalInvestmentCostVnd > 0)
+        else None
+    )
+    bcr = (
+        round(rev.totalAgriRevenueOverHorizonVnd / cost.totalInvestmentCostVnd, 4)
+        if cost.totalInvestmentCostVnd > 0
+        else 0.0
+    )
+
+    profit_roi = ProfitAndRoiMetrics(
+        annualNetAgriProfitVnd=annual_net_agri,
+        totalNetAgriProfitOverHorizonVnd=total_net_agri,
+        totalNetProfitWithCarbonScenarioVnd=total_net_with_carbon,
+        grossProfitMarginPercent=margin,
+        roiPercentAgriOnly=roi_agri,
+        roiPercentWithCarbonScenario=roi_with_carbon,
+        benefitCostRatio=bcr,
+        paybackPeriodYears=payback_years,
+        npvAgriOnlyVnd=npv_agri,
+    )
+
+    actual_notes: list[str] = []
+    if req.actualRecordedExpenseVnd is not None or req.actualRecordedRevenueVnd is not None:
+        exp = req.actualRecordedExpenseVnd or 0.0
+        rec = req.actualRecordedRevenueVnd or 0.0
+        actual_notes.append(
+            f"[DỮ LIỆU THỰC TẾ / ACTUAL_DATA] Sổ thu chi ghi nhận: Chi={exp:,.0f} VND, Thu={rec:,.0f} VND, "
+            f"Ròng thực tế={(rec - exp):,.0f} VND."
+        )
+    else:
+        actual_notes.append(
+            "[DỮ LIỆU THỰC TẾ] Chưa truyền số liệu sổ thu chi thực tế từ vườn; phép tính dùng dữ liệu đầu vào người dùng khai báo."
+        )
+
+    assumptions = [
+        f"[GIẢ ĐỊNH] Diện tích={req.investment.areaHa} ha; Chu kỳ phân tích={req.investment.horizonYears} năm; Tỷ lệ chiết khấu={req.discountRate:.1%}/năm.",
+        f"[GIẢ ĐỊNH] Sản lượng dừa={req.revenue.annualCoconutYieldUnitsPerHa:,.1f} đơn vị/ha/năm; Đơn giá={req.revenue.coconutUnitPriceVnd:,.0f} VND/đơn vị.",
+        f"[GIẢ ĐỊNH] Phụ phẩm dừa={req.revenue.annualByProductRevenuePerHaVnd:,.0f} VND/ha/năm; Hỗ trợ xanh={req.revenue.annualGreenSupportGrantVnd:,.0f} VND/năm.",
+    ]
+    if rev.carbonScenarioIncluded:
+        assumptions.append(f"[KỊCH BẢN GIẢ ĐỊNH CARBON] {rev.carbonScenarioDisclaimer}")
+    else:
+        assumptions.append("[RANH GIỚI CARBON] Không gán giá hoặc doanh thu tín chỉ carbon khi thiếu đơn giá và giả định xác suất thực hiện.")
+
+    return FinancialCalculationResult(
+        farmName=req.farmName,
+        areaHa=req.investment.areaHa,
+        horizonYears=req.investment.horizonYears,
+        discountRate=req.discountRate,
+        costBreakdown=cost,
+        revenueBreakdown=rev,
+        profitAndRoi=profit_roi,
+        cashFlowSchedule=rows,
+        breakEvenYearAgriOnly=break_even_year,
+        actualVsEstimateNotes=actual_notes,
+        assumptions=assumptions,
+    )
+
+
+def _to_comparison_item(name: str, res: FinancialCalculationResult, summary: str) -> ScenarioComparisonItem:
+    return ScenarioComparisonItem(
+        scenarioName=name,
+        totalCostVnd=res.costBreakdown.totalInvestmentCostVnd,
+        totalAgriRevenueVnd=res.revenueBreakdown.totalAgriRevenueOverHorizonVnd,
+        hypotheticalCarbonRevenueVnd=res.revenueBreakdown.hypotheticalCarbonRevenueTotalVnd,
+        netProfitAgriOnlyVnd=res.profitAndRoi.totalNetAgriProfitOverHorizonVnd,
+        netProfitWithCarbonVnd=res.profitAndRoi.totalNetProfitWithCarbonScenarioVnd,
+        roiPercentAgriOnly=res.profitAndRoi.roiPercentAgriOnly,
+        roiPercentWithCarbon=res.profitAndRoi.roiPercentWithCarbonScenario,
+        paybackYears=res.profitAndRoi.paybackPeriodYears,
+        npvAgriOnlyVnd=res.profitAndRoi.npvAgriOnlyVnd,
+        assumptionsSummary=summary,
+    )
+
+
+def run_scenario_simulation(req: ScenarioSimulationRequest) -> ScenarioSimulationResult:
+    """Compare Base vs Conservative/Optimistic/Custom financial scenarios deterministically."""
+    base_res = run_financial_calculation(req.baseInput)
+    base_item = _to_comparison_item("Kịch bản Cơ sở (Base)", base_res, "100% giá bán, 100% sản lượng, 100% chi phí")
+
+    variations = req.scenarios or [
+        ScenarioVariation(
+            name="Kịch bản Thận trọng (Giá -15%, Chi phí +10%)",
+            priceMultiplier=0.85,
+            yieldMultiplier=0.95,
+            costMultiplier=1.10,
+        ),
+        ScenarioVariation(
+            name="Kịch bản Tích cực (Sản lượng +15%, Phụ phẩm +15%)",
+            priceMultiplier=1.05,
+            yieldMultiplier=1.15,
+            costMultiplier=1.00,
+        ),
+    ]
+
+    results: list[ScenarioComparisonItem] = []
+    for var in variations:
+        cloned = req.baseInput.model_copy(deep=True)
+        cloned.investment.annualCareAndFertilizerPerHaVnd *= var.costMultiplier
+        cloned.investment.annualLaborAndHarvestPerHaVnd *= var.costMultiplier
+        cloned.investment.annualMonitoringAndAdminVnd *= var.costMultiplier
+        cloned.revenue.coconutUnitPriceVnd *= var.priceMultiplier
+        cloned.revenue.annualCoconutYieldUnitsPerHa *= var.yieldMultiplier
+        cloned.revenue.annualByProductRevenuePerHaVnd *= var.yieldMultiplier
+        if var.assumedCarbonPricePerTonneVnd is not None:
+            cloned.revenue.assumedCarbonPricePerTonneVnd = var.assumedCarbonPricePerTonneVnd
+        if var.carbonRealizationProbability is not None:
+            cloned.revenue.carbonRealizationProbability = var.carbonRealizationProbability
+
+        sim_res = run_financial_calculation(cloned)
+        summary = (
+            f"Giá x{var.priceMultiplier:.2f}, Sản lượng x{var.yieldMultiplier:.2f}, Chi phí x{var.costMultiplier:.2f}"
+            + (
+                f", Carbon giả định {cloned.revenue.assumedCarbonPricePerTonneVnd:,.0f} VND/t"
+                if sim_res.revenueBreakdown.carbonScenarioIncluded
+                else ""
+            )
+        )
+        results.append(_to_comparison_item(var.name, sim_res, summary))
+
+    notes = [
+        "So sánh kịch bản cho thấy mức độ nhạy cảm của ROI và NPV theo biến động giá dừa, sản lượng và chi phí chăm sóc.",
+        "Hiệu quả kinh tế bền vững phải dựa trên dòng tiền nông sản/phụ phẩm dừa trước khi tính tới kịch bản carbon.",
+    ]
+
+    return ScenarioSimulationResult(
+        baseSummary=base_item,
+        scenarios=results,
+        sensitivityNotes=notes,
+        disclaimer=base_res.scientificAndLegalBoundary,
+    )
+
+
+def build_deterministic_financial_report(
+    calc: FinancialCalculationResult,
+    sim: ScenarioSimulationResult | None = None,
+    citations: list[dict] | None = None,
+) -> FinancialReportSection:
+    """Build complete 9-section structured Financial Report strictly from Engine outputs."""
+    c = calc.costBreakdown
+    r = calc.revenueBreakdown
+    p = calc.profitAndRoi
+
+    payback_txt = f"{p.paybackPeriodYears} năm" if p.paybackPeriodYears is not None else "Chưa hoàn vốn trong chu kỳ khảo sát"
+    exec_sum = (
+        f"Báo cáo tài chính cho '{calc.farmName}' ({calc.areaHa} ha, chu kỳ {calc.horizonYears} năm): "
+        f"Tổng chi phí đầu tư & vận hành ước tính {c.totalInvestmentCostVnd:,.0f} VND; "
+        f"Doanh thu nông sản & phụ phẩm dừa {r.totalAgriRevenueOverHorizonVnd:,.0f} VND; "
+        f"Lợi nhuận ròng nông nghiệp {p.totalNetAgriProfitOverHorizonVnd:,.0f} VND (ROI = {p.roiPercentAgriOnly:.1f}%, hoàn vốn: {payback_txt})."
+    )
+    if r.carbonScenarioIncluded:
+        exec_sum += (
+            f" Nếu xét thêm kịch bản carbon giả định ({r.hypotheticalCarbonRevenueTotalVnd:,.0f} VND, chưa phải tín chỉ phát hành), "
+            f"ROI kịch bản đạt {p.roiPercentWithCarbonScenario:.1f}%."
+        )
+
+    inv_overview = (
+        f"Tổng vốn đầu tư ban đầu (CAPEX) là {c.initialCapexVnd:,.0f} VND ({c.capexPerHaVnd:,.0f} VND/ha); "
+        f"chi phí vận hành định kỳ (OPEX) là {c.annualOpexVnd:,.0f} VND/năm ({c.totalOpexOverHorizonVnd:,.0f} VND/{calc.horizonYears} năm). "
+        f"Ngân sách chuẩn bị hồ sơ/MRV chiếm {c.mrvPrepSharePercent:.1f}% tổng chi phí."
+    )
+    rev_analysis = (
+        f"Doanh thu dừa chính đạt {r.annualCoconutHarvestRevenueVnd:,.0f} VND/năm, phụ phẩm (gáo/xơ/mụn) đạt "
+        f"{r.annualByProductRevenueVnd:,.0f} VND/năm, hỗ trợ xanh {r.annualGreenSupportVnd:,.0f} VND/năm. "
+        f"{r.carbonScenarioDisclaimer}"
+    )
+    cost_analysis = (
+        f"Chi phí phân loại nguồn: {c.dataCategory}. OPEX bình quân {c.annualOpexPerHaVnd:,.0f} VND/ha/năm. "
+        "Tách riêng chi phí canh tác cốt lõi và chi phí đo đạc/lập hồ sơ MRV giúp HTX chủ động cân đối dòng tiền."
+    )
+    roi_analysis = (
+        f"ROI thuần nông nghiệp = {p.roiPercentAgriOnly:.2f}%, Tỷ lệ Lợi ích/Chi phí (BCR) = {p.benefitCostRatio:.2f}, "
+        f"NPV (@{calc.discountRate:.1%}) = {p.npvAgriOnlyVnd:,.0f} VND, Biên lợi nhuận = {p.grossProfitMarginPercent:.1f}%."
+    )
+    cf_analysis = (
+        f"Năm hòa vốn dòng tiền lũy kế (không tính carbon): "
+        + (f"Năm thứ {calc.breakEvenYearAgriOnly}." if calc.breakEvenYearAgriOnly is not None else "Chưa đạt điểm hòa vốn trong chu kỳ đã chọn.")
+    )
+
+    risks = [
+        "Rủi ro biến động giá dừa tươi/khô và năng suất theo thời tiết/xâm nhập mặn vùng ĐBSCL.",
+        "Rủi ro chi phí MRV vượt ngân sách nếu diện tích vườn nhỏ lẻ không gom theo Hợp tác xã.",
+        "Rủi ro pháp lý/khoa học nếu nhầm lẫn trữ lượng tham khảo CTU 2015 thành tín chỉ carbon bán được.",
+    ]
+    if p.totalNetAgriProfitOverHorizonVnd < 0:
+        risks.insert(0, "CẢNH BÁO TÀI CHÍNH: Dòng tiền thuần nông nghiệp đang âm — không nên đầu tư dựa trên kỳ vọng thu từ carbon.")
+
+    recs = [
+        "Ghi nhận định kỳ chi phí phân hữu cơ/mụn dừa và doanh thu nông sản thực tế trên Sổ Tài chính Xanh (USER_DECLARED).",
+        "Ưu tiên tăng thu từ phụ phẩm dừa (xơ, mụn, gáo) để cải thiện biên lợi nhuận nền trước khi tham gia dự án carbon.",
+        "Tham gia Hợp tác xã vùng dừa Bến Tre - Vĩnh Long để chia sẻ chi phí đo đạc/baseline/thẩm định (VVB).",
+    ]
+
+    sources_assumptions = calc.actualVsEstimateNotes + calc.assumptions
+    if sim:
+        sources_assumptions.extend(sim.sensitivityNotes)
+    for cit in citations or []:
+        sources_assumptions.append(f"[{cit.get('sourceCode', 'SRC')}] {cit.get('title', '')}")
+
+    return FinancialReportSection(
+        executiveSummary=exec_sum,
+        investmentOverview=inv_overview,
+        revenueAnalysis=rev_analysis,
+        costAnalysis=cost_analysis,
+        roiAnalysis=roi_analysis,
+        cashFlowAnalysis=cf_analysis,
+        riskAssessment=risks,
+        recommendations=recs,
+        dataSourcesAndAssumptions=sources_assumptions,
+    )

@@ -68,6 +68,9 @@ class DocumentAnalysisResponse(BaseModel):
     evidence: list[EvidenceItem] = Field(default_factory=list)
     confidenceNotes: list[str] = Field(default_factory=list)
     readinessRubric: Optional[ReadinessRubric] = None
+    projectReadinessScore: float = Field(default=0.0, ge=0.0, le=100.0)
+    documentCompletenessScore: float = Field(default=0.0, ge=0.0, le=100.0)
+    carbonIntegrityRiskScore: float = Field(default=0.0, ge=0.0, le=100.0)
     fraudRiskScore: float = Field(default=0.0, ge=0.0, le=100.0)
     fraudRiskLevel: Literal["Low", "Medium", "High", "Unknown"] = "Low"
     fraudSignals: list[FraudSignal] = Field(default_factory=list)

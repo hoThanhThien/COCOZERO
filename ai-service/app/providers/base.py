@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 from pydantic import BaseModel, Field
 
 
@@ -39,3 +39,18 @@ class BaseAiProvider(ABC):
         retrieved_sources: list[dict[str, Any]],
     ) -> tuple[str, bool]:
         """Return (answer_text, is_fallback)."""
+
+    @abstractmethod
+    def run_assistant_with_tools(
+        self,
+        *,
+        role: str,
+        question: str,
+        intent: str,
+        language: str,
+        session_history: list[dict[str, Any]],
+        context_data: dict[str, Any],
+        retrieved_sources: list[dict[str, Any]],
+        precomputed_tool_outputs: dict[str, Any] | None = None,
+    ) -> tuple[str, list[dict[str, Any]], bool]:
+        """Return (answer_text, tool_calls_executed, is_fallback)."""

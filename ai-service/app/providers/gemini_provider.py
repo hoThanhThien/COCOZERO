@@ -6,6 +6,7 @@ from typing import Any
 from google import genai
 from app.providers.base import BaseAiProvider, ModelExtractionOutput
 from app.providers.heuristic_provider import HeuristicFallbackProvider
+from app.services.tool_registry import TOOL_DECLARATIONS, execute_tool
 
 logger = logging.getLogger(__name__)
 
@@ -16,12 +17,13 @@ QUY TẮC BẮT BUỘC:
 3. KHÔNG bao giờ tự bịa số liệu, mã serial tín chỉ, giá bán, doanh thu hoặc tuyên bố "đạt chuẩn / đã phát hành / đã xác minh".
 4. KHÔNG tính lại hay sửa công thức carbon; chỉ trích xuất các trường mô tả vườn/hồ sơ (diện tích ha, số cây, giống, tuổi, xã/tỉnh, tên chủ hộ, ngày cấp, loại tài liệu)."""
 
-RAG_SYSTEM_INSTRUCTION = """Bạn là trợ lý khoa học & quy trình CocoCarbon AI.
-QUY TẮC CHỐNG HALLUCINATION:
-1. CHỈ trả lời dựa trên danh sách curated_sources được cung cấp và context_data của người dùng.
-2. Luôn trích dẫn mã nguồn [R1], [R2], [R3], ... trong câu trả lời bằng tiếng Việt dễ hiểu.
-3. Nếu nguồn được cung cấp không đủ để trả lời, hãy nói rõ: "Chưa đủ dữ liệu trong kho nguồn kiểm chứng để kết luận."
-4. Tuyệt đối KHÔNG gọi ước tính CTU 2015 là tCO2/ha/năm, KHÔNG gọi là tín chỉ carbon đã phát hành hay doanh thu đảm bảo."""
+RAG_SYSTEM_INSTRUCTION = """Bạn là Trợ lý Tài chính Xanh & Khoa học Carbon của CocoCarbon AI (Human-Centered, Science-First).
+QUY TẮC BẮT BUỘC:
+1. TUYỆT ĐỐI KHÔNG tự tính nhẩm ROI, NPV, chi phí, lợi nhuận hay dòng tiền: phải gọi tool `calculate_financial_metrics` hoặc `simulate_financial_scenarios` khi có số liệu.
+2. CHỈ trả lời dựa trên kết quả tool, `retrieved_sources` và `context_data`. Nếu thiếu số liệu đầu vào (ví dụ chưa có giá bán hoặc chi phí), hãy nói rõ cần bổ sung tham số gì — KHÔNG tự bịa.
+3. Phân biệt rõ trong câu trả lời 3 nhóm: [Dữ liệu thực tế], [Giả định], [Ước tính].
+4. Luôn trích dẫn mã nguồn [R1], [R2], [GF1], [AGRI1]... và khẳng định ước tính carbon CTU 2015 KHÔNG phải tín chỉ carbon đã phát hành hay doanh thu bảo đảm.
+5. Trả lời bằng ngôn ngữ của người dùng (Tiếng Việt hoặc Tiếng Anh)."""
 
 
 class GeminiInteractionsProvider(BaseAiProvider):
@@ -138,23 +140,124 @@ class GeminiInteractionsProvider(BaseAiProvider):
             f"{json.dumps(retrieved_sources, ensure_ascii=False)}"
         )
 
-        try:
-            interaction = self._client.interactions.create(
-                model=self.model_name,
-                input=prompt,
-                system_instruction=RAG_SYSTEM_INSTRUCTION,
-                generation_config={"temperature": 0.2},
-                store=False,
-                timeout=self._timeout,
-            )
-            if interaction.output_text:
-                return interaction.output_text.strip(), False
-        except Exception as exc:
-            logger.warning("Gemini RAG synthesis failed (%s); falling back to deterministic citation answer.", type(exc).__name__)
+        for attempt in range(self._max_retries + 1):
+            try:
+                interaction = self._client.interactions.create(
+                    model=self.model_name,
+                    input=prompt,
+                    system_instruction=RAG_SYSTEM_INSTRUCTION,
+                    generation_config={"temperature": 0.2},
+                    store=False,
+                    timeout=self._timeout,
+                )
+                if interaction.output_text:
+                    return interaction.output_text.strip(), False
+            except Exception as exc:
+                logger.warning("Gemini RAG attempt %d failed (%s)", attempt + 1, type(exc).__name__)
+                if attempt < self._max_retries:
+                    time.sleep(0.4 * (attempt + 1))
 
         return self._fallback.synthesize_rag_answer(
             role=role,
             question=question,
             context_data=context_data,
             retrieved_sources=retrieved_sources,
+        )
+
+    def run_assistant_with_tools(
+        self,
+        *,
+        role: str,
+        question: str,
+        intent: str,
+        language: str,
+        session_history: list[dict[str, Any]],
+        context_data: dict[str, Any],
+        retrieved_sources: list[dict[str, Any]],
+        precomputed_tool_outputs: dict[str, Any] | None = None,
+    ) -> tuple[str, list[dict[str, Any]], bool]:
+        if self._client is None:
+            return self._fallback.run_assistant_with_tools(
+                role=role,
+                question=question,
+                intent=intent,
+                language=language,
+                session_history=session_history,
+                context_data=context_data,
+                retrieved_sources=retrieved_sources,
+                precomputed_tool_outputs=precomputed_tool_outputs,
+            )
+
+        # Build stateless Interactions API turn history (store=False)
+        prompt_payload = {
+            "role": role,
+            "detectedIntent": intent,
+            "preferredLanguage": language,
+            "recentTurns": session_history[-4:],
+            "contextData": context_data,
+            "precomputedToolOutputs": precomputed_tool_outputs or {},
+            "retrievedSources": retrieved_sources,
+            "question": question,
+        }
+        history: list[dict[str, Any]] = [
+            {
+                "type": "user_input",
+                "content": [{"type": "text", "text": json.dumps(prompt_payload, ensure_ascii=False)}],
+            }
+        ]
+        tool_traces: list[dict[str, Any]] = []
+
+        for attempt in range(self._max_retries + 1):
+            try:
+                cur_history = list(history)
+                for _round in range(4):
+                    interaction = self._client.interactions.create(
+                        model=self.model_name,
+                        store=False,
+                        input=cur_history,
+                        tools=TOOL_DECLARATIONS,
+                        system_instruction=RAG_SYSTEM_INSTRUCTION,
+                        generation_config={"temperature": 0.1, "tool_choice": "auto"},
+                        timeout=self._timeout,
+                    )
+
+                    steps = getattr(interaction, "steps", None) or []
+                    for step in steps:
+                        cur_history.append(step.model_dump() if hasattr(step, "model_dump") else dict(step))
+
+                    fc_steps = [s for s in steps if getattr(s, "type", None) == "function_call"]
+                    if not fc_steps:
+                        if interaction.output_text:
+                            return interaction.output_text.strip(), tool_traces, False
+                        break
+
+                    for fc in fc_steps:
+                        args = getattr(fc, "arguments", None) or {}
+                        result = execute_tool(fc.name, args)
+                        tool_traces.append({
+                            "tool": fc.name,
+                            "arguments": args,
+                            "ok": result.get("ok", False),
+                        })
+                        cur_history.append({
+                            "type": "function_result",
+                            "name": fc.name,
+                            "call_id": fc.id,
+                            "result": [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}],
+                        })
+                break
+            except Exception as exc:
+                logger.warning("Gemini tool-calling attempt %d failed (%s)", attempt + 1, type(exc).__name__)
+                if attempt < self._max_retries:
+                    time.sleep(0.5 * (attempt + 1))
+
+        return self._fallback.run_assistant_with_tools(
+            role=role,
+            question=question,
+            intent=intent,
+            language=language,
+            session_history=session_history,
+            context_data=context_data,
+            retrieved_sources=retrieved_sources,
+            precomputed_tool_outputs=precomputed_tool_outputs,
         )

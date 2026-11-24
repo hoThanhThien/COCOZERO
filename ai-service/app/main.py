@@ -22,13 +22,15 @@ from app.services.document_extractor import (
 )
 from app.services.rag_knowledge import retrieve_relevant_sources
 from app.services.readiness_rubric import evaluate_project_readiness
+from app.routers.api_routes import router as api_router
 
 app = FastAPI(
-    title="CocoCarbon Internal AI Service",
-    version="1.0.0",
-    docs_url=None,
+    title="CocoCarbon AI Service",
+    version="1.1.0",
+    docs_url="/api/docs",
     redoc_url=None,
 )
+app.include_router(api_router)
 
 
 def get_provider() -> BaseAiProvider:
@@ -163,6 +165,14 @@ async def analyze_document(
         has_malformed_pdf=False,
     )
 
+    doc_present_checks = [
+        bool(extraction.extractedFields),
+        bool(evidence_items),
+        bool(farm_context.get("areaHa")),
+        bool(farm_context.get("treeCount")),
+    ]
+    doc_completeness = round((sum(1 for x in doc_present_checks if x) / len(doc_present_checks)) * 100.0, 2)
+
     confidence_notes = list(extraction.confidenceNotes)
     if not any("Chưa xác minh độc lập" in n for n in confidence_notes):
         confidence_notes.append("Chưa xác minh độc lập; kết quả AI chỉ phục vụ rà soát nội bộ.")
@@ -179,6 +189,9 @@ async def analyze_document(
         evidence=evidence_items,
         confidenceNotes=confidence_notes,
         readinessRubric=rubric,
+        projectReadinessScore=rubric.score,
+        documentCompletenessScore=doc_completeness,
+        carbonIntegrityRiskScore=fraud_score,
         fraudRiskScore=fraud_score,
         fraudRiskLevel=fraud_level,
         fraudSignals=[FraudSignal(**s) for s in fraud_signals],

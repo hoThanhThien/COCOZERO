@@ -34,6 +34,7 @@ describe("CocoCarbon Web Scientific & Security Guardrails", () => {
       "../src/app/projects/[id]/page.tsx",
       "../src/app/buyer/page.tsx",
       "../src/app/assistant/page.tsx",
+      "../src/app/financial-assistant/page.tsx",
       "../src/app/admin/page.tsx",
     ];
     for (const rel of requiredPages) {
@@ -41,10 +42,16 @@ describe("CocoCarbon Web Scientific & Security Guardrails", () => {
     }
   });
 
-  it("documents page renders anti-fraud indicator and farm detail supports green finance ledger", () => {
-    const docsPage = fs.readFileSync(path.resolve(__dirname, "../src/app/documents/page.tsx"), "utf-8");
-    const farmDetailPage = fs.readFileSync(path.resolve(__dirname, "../src/app/farms/[id]/page.tsx"), "utf-8");
-    expect(docsPage).toContain("AI Anti-Fraud Indicator");
-    expect(farmDetailPage).toContain("/finance-ledger");
+    it("documents page renders anti-fraud indicator and 3 separated scores; financial assistant uses Python engine endpoints", () => {
+      const docsPage = fs.readFileSync(path.resolve(__dirname, "../src/app/documents/page.tsx"), "utf-8");
+      const farmDetailPage = fs.readFileSync(path.resolve(__dirname, "../src/app/farms/[id]/page.tsx"), "utf-8");
+      const finPage = fs.readFileSync(path.resolve(__dirname, "../src/app/financial-assistant/page.tsx"), "utf-8");
+      expect(docsPage).toContain("AI Anti-Fraud Indicator");
+      expect(docsPage).toContain("/api/carbon/integrity-check");
+      expect(farmDetailPage).toContain("/finance-ledger");
+      expect(finPage).toContain("/api/ai/assistant");
+      expect(finPage).toContain("/api/financial/calculate");
+      expect(finPage).toContain("/api/financial/scenarios");
+      expect(finPage).toContain("/api/financial/reports");
+    });
   });
-});

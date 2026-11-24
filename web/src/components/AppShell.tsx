@@ -31,6 +31,7 @@ const NAV_ITEMS = [
   { href: "/cooperative", label: "Hợp tác xã", icon: Building2 },
   { href: "/projects", label: "Danh mục Dự án", icon: FolderKanban },
   { href: "/buyer", label: "Không gian Buyer / RFQ", icon: ShoppingBag },
+  { href: "/financial-assistant", label: "Trợ lý Tài chính AI", icon: Calculator },
   { href: "/assistant", label: "Trợ lý Khoa học RAG", icon: Bot },
   { href: "/onboarding", label: "Hồ sơ & Đồng thuận", icon: UserCheck },
   { href: "/admin", label: "Quản trị & Audit", icon: ShieldCheck },

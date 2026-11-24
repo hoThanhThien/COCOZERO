@@ -24,8 +24,40 @@ export default function DocumentsAndAuditPage() {
   const [selected, setSelected] = useState<AiAnalysisDetailDto | null>(null);
   const [decision, setDecision] = useState("Accepted");
   const [comment, setComment] = useState("");
+  const [integrityInput, setIntegrityInput] = useState("Diện tích 1.0 ha, 200 cây Dừa Ta 10 năm tuổi.");
+  const [hasLandDoc, setHasLandDoc] = useState(false);
+  const [integrityRes, setIntegrityRes] = useState<{
+    projectReadinessScore: number;
+    documentCompletenessScore: number;
+    carbonIntegrityRiskScore: number;
+    integrityStatus: string;
+    scoreSeparationExplanation: string;
+    explainableAlerts: { code: string; scoreTypeAffected: string; explanation: string; evidenceSnippet: string }[];
+  } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  async function runIntegrityCheck() {
+    setErr(null);
+    try {
+      const res = await apiFetch<NonNullable<typeof integrityRes>>("/api/carbon/integrity-check", {
+        method: "POST",
+        body: JSON.stringify({
+          farmName: "Kiểm tra nhanh hồ sơ",
+          areaHa: 1.0,
+          treeCount: 200,
+          ageYears: 10,
+          declaredTextClaims: integrityInput,
+          hasLandDocument: hasLandDoc,
+          hasFieldPhotos: true,
+          hasOwnerConsent: true,
+        }),
+      });
+      setIntegrityRes(res);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Lỗi kiểm tra toàn vẹn carbon.");
+    }
+  }
 
   async function loadList() {
     if (!getStoredToken()) return;
@@ -85,6 +117,41 @@ export default function DocumentsAndAuditPage() {
     >
       {err && <div className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900">{err}</div>}
       {msg && <div className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">{msg}</div>}
+
+      <div className="mb-6 rounded-xl border border-[#d8e2da] bg-white p-5 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-bold text-[#123c29]">Kiểm tra Toàn vẹn Hồ sơ Carbon — Tách biệt 3 Chỉ số</h2>
+          <button type="button" onClick={runIntegrityCheck} className="rounded-lg bg-[#123c29] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#15803d]">
+            Chạy Carbon Integrity Check
+          </button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3 text-xs">
+          <input value={integrityInput} onChange={(e) => setIntegrityInput(e.target.value)} className="rounded-lg border border-[#d8e2da] px-3 py-2 sm:col-span-2" placeholder="Nhập mô tả/tuyên bố để kiểm tra rủi ro..." />
+          <label className="flex items-center gap-2 rounded-lg border border-[#d8e2da] px-3 py-2">
+            <input type="checkbox" checked={hasLandDoc} onChange={(e) => setHasLandDoc(e.target.checked)} />
+            Đã có chứng từ quyền đất
+          </label>
+        </div>
+        {integrityRes && (
+          <div className="space-y-2 pt-2">
+            <div className="grid gap-3 sm:grid-cols-3 text-xs">
+              <div className="rounded-lg border border-[#dce6de] bg-[#f8fbf8] p-3">
+                <p className="text-[#526158]">Project Readiness Score</p>
+                <p className="text-lg font-extrabold text-[#123c29]">{integrityRes.projectReadinessScore}/100</p>
+              </div>
+              <div className="rounded-lg border border-[#dce6de] bg-[#f8fbf8] p-3">
+                <p className="text-[#526158]">Document Completeness Score</p>
+                <p className="text-lg font-extrabold text-[#15803d]">{integrityRes.documentCompletenessScore}/100</p>
+              </div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+                <p className="text-[#526158]">Carbon Integrity Risk Score</p>
+                <p className="text-lg font-extrabold text-amber-900">{integrityRes.carbonIntegrityRiskScore}/100 ({integrityRes.integrityStatus})</p>
+              </div>
+            </div>
+            <p className="text-[11px] text-[#526158]">{integrityRes.scoreSeparationExplanation}</p>
+          </div>
+        )}
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="rounded-xl border border-[#d8e2da] bg-white p-4 lg:col-span-1">
