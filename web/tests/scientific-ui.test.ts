@@ -46,7 +46,7 @@ describe("CocoCarbon Web Scientific & Security Guardrails", () => {
       const docsPage = fs.readFileSync(path.resolve(__dirname, "../src/app/documents/page.tsx"), "utf-8");
       const farmDetailPage = fs.readFileSync(path.resolve(__dirname, "../src/app/farms/[id]/page.tsx"), "utf-8");
       const finPage = fs.readFileSync(path.resolve(__dirname, "../src/app/financial-assistant/page.tsx"), "utf-8");
-      const loginPage = fs.readFileSync(path.resolve(__dirname, "../src/app/login/page.tsx"), "utf-8");
+      const loginClient = fs.readFileSync(path.resolve(__dirname, "../src/app/login/LoginClient.tsx"), "utf-8");
       expect(docsPage).toContain("AI Anti-Fraud Indicator");
       expect(docsPage).toContain("/api/carbon/integrity-check");
       expect(docsPage).toContain("/api/carbon/proposal-check");
@@ -57,6 +57,8 @@ describe("CocoCarbon Web Scientific & Security Guardrails", () => {
       expect(finPage).toContain("/api/financial/reports");
       expect(finPage).toContain("/api/financial/parse-transaction");
       expect(finPage).toContain("Promise.allSettled");
-      expect(loginPage).toContain("signInWithEmailPasswordFirebase");
+      expect(loginClient).toContain("signInWithEmailPasswordFirebase");
+      expect(loginClient).not.toContain("FIREBASE_AUTH_DEV_ALLOW_MOCK");
+      expect(loginClient).not.toContain("NEXT_PUBLIC_FIREBASE_API_KEY");
     });
   });
