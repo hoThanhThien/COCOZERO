@@ -11,8 +11,11 @@
   --coco-muted: #526158;
 }
 
+html,
 body {
   background-color: var(--coco-bg);
   color: var(--coco-text);
   font-family: "Be Vietnam Pro", "Inter", system-ui, -apple-system, sans-serif;
+  overflow-x: clip;
+  max-width: 100%;
 }

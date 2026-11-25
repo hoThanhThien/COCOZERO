@@ -110,7 +110,7 @@ export default function CalculatorPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-semibold text-[#526158]">Diện tích (ha)</label>
                 <input type="number" step="0.01" value={areaHa} onChange={(e) => setAreaHa(e.target.value)} required className="mt-1 w-full rounded-lg border border-[#d8e2da] px-3 py-2 text-sm" />
@@ -121,7 +121,7 @@ export default function CalculatorPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-semibold text-[#526158]">Nhóm giống nghiên cứu</label>
                 <select value={variety} onChange={(e) => setVariety(e.target.value)} className="mt-1 w-full rounded-lg border border-[#d8e2da] px-3 py-2 text-sm">
@@ -180,7 +180,7 @@ export default function CalculatorPage() {
             <div className="rounded-xl border border-[#d8e2da] bg-white p-5">
               <h3 className="text-sm font-bold text-[#123c29]">Bảng 4 hệ số CTU (2015) được phê duyệt [R1]</h3>
               <div className="mt-3 overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full min-w-[460px] text-left text-xs">
                   <thead>
                     <tr className="border-b border-[#e2eae3] text-[#526158]">
                       <th className="py-2 pr-3">Nhóm giống</th>

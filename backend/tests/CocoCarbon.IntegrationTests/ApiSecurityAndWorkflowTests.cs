@@ -97,8 +97,8 @@ public sealed class StubPythonAiServiceClient : IPythonAiServiceClient
     public Task<AiAssistantResponse> QueryAssistantAsync(AiAssistantRequest request, CancellationToken cancellationToken = default) =>
         Task.FromResult(new AiAssistantResponse("OK", true, [], "Disclaimer", "gemini-4-hydrogen", false));
 
-    public Task<(int StatusCode, string Body)> ForwardJsonAsync(string relativePath, string rawJson, CancellationToken cancellationToken = default) =>
-        Task.FromResult((200, "{\"ok\":true,\"forwarded\":\"" + relativePath + "\"}"));
+    public Task<(int StatusCode, string Body)> ForwardJsonAsync(string relativePath, string rawJson, CancellationToken cancellationToken = default, string method = "POST") =>
+        Task.FromResult((200, "{\"ok\":true,\"forwarded\":\"" + relativePath + "\",\"method\":\"" + method + "\"}"));
 }
 
 public sealed class CocoCarbonApiFactory : WebApplicationFactory<Program>, IDisposable
@@ -200,6 +200,17 @@ public class ApiSecurityAndWorkflowTests : IClassFixture<CocoCarbonApiFactory>
         var realAdmin = ClientWithToken("valid-admin");
         var okAdminResp = await realAdmin.GetAsync("/api/v1/admin/users");
         Assert.Equal(HttpStatusCode.OK, okAdminResp.StatusCode);
+
+        // Non-admin CANNOT read or update Multi-AI Provider API keys; Admin CAN
+        Assert.Equal(HttpStatusCode.Forbidden, (await farmerClient.GetAsync("/api/v1/admin/ai-provider")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await realAdmin.GetAsync("/api/v1/admin/ai-provider")).StatusCode);
+        var updateProviderResp = await realAdmin.PostAsJsonAsync("/api/v1/admin/ai-provider", new
+        {
+            activeProvider = "openai",
+            modelName = "gpt-4o-mini",
+            apiKey = "sk-test-1234"
+        });
+        Assert.Equal(HttpStatusCode.OK, updateProviderResp.StatusCode);
     }
 
     [Fact]

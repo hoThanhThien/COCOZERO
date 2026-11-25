@@ -9,14 +9,17 @@
 - **Rủi ro mất tiền do lừa đảo dự án carbon**: Môi giới thổi phồng "hấp thụ tCO2/ha/năm cố định", "lợi nhuận chắc chắn" hoặc đòi đóng phí/đặt cọc trước khi ký hợp đồng.
 - **Khó khăn quản lý tài chính vườn**: Nông hộ ít theo dõi chi phí phân bón, nhân công, MRV vs doanh thu nông sản/phụ phẩm (gáo, xơ, mụn dừa) theo tháng/quý/năm để biết có thực sự có lãi trước khi mở rộng.
 
-## Slide 3: Câu chuyện Sản phẩm & Giải pháp Khép kín
-- Khi nhận đề nghị đầu tư carbon: kiểm tra ngay dấu hiệu lừa đảo trước khi ký/chuyển tiền (`/documents`).
-- Hằng tháng/vụ mùa: ghi thu chi bằng tiếng Việt/Anh tự nhiên (xác nhận trước khi lưu) và dùng **AI Financial Assistant** tính ROI/NPV/dòng tiền dựa trên **dữ liệu thực tế + giả định minh bạch** (`/financial-assistant`).
-- Luồng đầy đủ: Số hóa vườn → Sổ Thu Chi & Đối chiếu Ngân sách → Chống lừa đảo & AI Auditor → CTU 2015 Calculator → HTX & RFQ.
+## Slide 3: Câu chuyện Sản phẩm — Trợ lý AI hiểu nhu cầu & hành động thay người dùng
+- Sản phẩm giúp cuộc sống nông hộ & HTX trở nên **tiện lợi, an toàn và thoải mái hơn** qua 5 tác vụ Trợ lý hành động (từ cốt lõi Tài chính Xanh & Anti-Fraud):
+  - **Trợ lý Tài chính**: đồng hành quản lý thu chi thực tế, ROI/NPV, dòng tiền & báo cáo 9 phần.
+  - **Trợ lý Thanh toán & Giao dịch**: phân tích câu tự nhiên, chuẩn bị lệnh ghi Sổ Thu Chi (1 chạm xác nhận) & chặn phí trước đáng ngờ.
+  - **Trợ lý Mua sắm**: ước tính ngân sách vật tư (giống, phân, tưới, MRV) & kiểm tra an toàn gói hợp tác carbon.
+  - **Trợ lý Bán hàng**: tư vấn phụ phẩm gáo/xơ/mụn dừa & tự soạn thư phản hồi RFQ minh bạch cho Buyer.
+  - **Trợ lý Cá nhân**: tổng hợp checklist hồ sơ còn thiếu, nhắc việc và tiến độ MRV hằng tháng.
 
-## Slide 4: Trợ lý Tài chính AI (Gemini 4 + Python Engine + Sổ Thu Chi Thực tế)
-- **Không để AI tự tính nhẩm**: `GeminiInteractionsProvider` (`gemini-4-hydrogen` Interactions API, `tools`, `store=False`) gọi hàm Python deterministic (`financial_engine.py`), kèm fallback ngoại tuyến an toàn.
-- **Gắn kết số liệu thật (`FarmFinancialEntries`)**: Tổng hợp **Tháng/Quý/Năm**, đối chiếu thực tế vs ngân sách, cảnh báo `OVER_BUDGET_OPEX` / `ACTUAL_NEGATIVE_CASHFLOW`, tính lại ROI hiệu chỉnh, mô phỏng kịch bản và xuất báo cáo 9 phần.
+## Slide 4: Kiến trúc Đa Mô hình AI (Admin API Key) & Gemini Tool Calling
+- **Mở rộng linh hoạt cho Admin (`/admin`)**: Hỗ trợ thêm và chuyển đổi API Key ngay trên giao diện Admin cho **Google Gemini (`gemini-4-hydrogen`), OpenAI GPT, OpenRouter, Groq, Anthropic Claude hoặc Custom endpoint** — bảo mật key ở phía server, hỗ trợ kiểm tra kết nối trực tiếp & tự động fallback khi thiếu key.
+- **Không để AI tự tính nhẩm**: Toàn bộ phép tính ROI/NPV/Dòng tiền thực tế đều thực thi qua Python Deterministic Tool Calling (`calculate_financial_metrics`, `parse_natural_language_transaction`, `generate_sales_rfq_draft`, `build_personal_action_checklist`).
 
 ## Slide 5: Hệ thống Chống Lừa đảo Đề nghị Đầu tư & Hồ sơ Carbon
 - **Kiểm tra Đề nghị Đầu tư (`/api/carbon/proposal-check`)**: Bắt yêu cầu đóng phí trước (`FRAUD_UPFRONT_FEE_DEMAND`), cam kết doanh thu chắc chắn, thổi phồng `tCO2/ha/năm`, áp lực ký gấp (`DO_NOT_SIGN_OR_PAY`).

@@ -148,6 +148,41 @@ TOOL_DECLARATIONS: list[dict[str, Any]] = [
             "required": ["text"],
         },
     },
+    {
+        "type": "function",
+        "name": "generate_sales_rfq_draft",
+        "description": (
+            "Soạn thảo thông tin giới thiệu sản phẩm dừa/phụ phẩm hoặc phản hồi yêu cầu tìm hiểu (RFQ) cho nông hộ/HTX "
+            "giúp tiết kiệm thời gian giao dịch minh bạch với Buyer (không bịa tín chỉ phát hành)."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "farmName": {"type": "string"},
+                "areaHa": {"type": "number"},
+                "annualYieldUnitsPerHa": {"type": "number"},
+                "byProductsSummary": {"type": "string"},
+                "buyerInquiry": {"type": "string"},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "name": "build_personal_action_checklist",
+        "description": (
+            "Lập danh sách công việc cá nhân, lịch theo dõi chi phí/chứng từ MRV còn thiếu và hành động ưu tiên cho chủ vườn."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "farmName": {"type": "string"},
+                "hasLandDocument": {"type": "boolean"},
+                "hasFieldPhotos": {"type": "boolean"},
+                "hasOwnerConsent": {"type": "boolean"},
+                "hasFinancialEntries": {"type": "boolean"},
+            },
+        },
+    },
 ]
 
 
@@ -254,6 +289,33 @@ def execute_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         if name == "parse_natural_language_transaction":
             proposal = parse_natural_language_transaction(str(arguments.get("text") or ""))
             return {"ok": True, "transactionProposal": proposal.model_dump()}
+
+        if name == "generate_sales_rfq_draft":
+            farm_name = str(arguments.get("farmName") or "Vườn dừa CocoCarbon")
+            area_ha = float(arguments.get("areaHa") or 1.0)
+            yield_ha = float(arguments.get("annualYieldUnitsPerHa") or 0.0)
+            byprod = str(arguments.get("byProductsSummary") or "dừa khô, gáo dừa, xơ và mụn dừa hữu cơ")
+            draft = (
+                f"Thư phản hồi RFQ minh bạch — {farm_name} ({area_ha:.1f} ha, vùng dừa Bến Tre - Vĩnh Long):\n"
+                f"1. Năng lực cung ứng nông sản & tuần hoàn: ước tính {yield_ha * area_ha:,.0f} đơn vị dừa/năm cùng phụ phẩm {byprod}.\n"
+                "2. Trạng thái dữ liệu carbon: đang chuẩn hóa hồ sơ, GPS & Sổ Thu Chi xanh trên CocoCarbon AI; "
+                "mọi chỉ số CTU 2015 chỉ mang tính tham khảo kỹ thuật, chưa phát hành tín chỉ thương mại."
+            )
+            return {"ok": True, "salesRfqDraft": draft}
+
+        if name == "build_personal_action_checklist":
+            farm_name = str(arguments.get("farmName") or "Vườn dừa")
+            tasks = []
+            if not arguments.get("hasLandDocument"):
+                tasks.append("Tải lên bản chụp/PDF giấy tờ quyền sử dụng đất (ưu tiên cao — tăng Document Completeness).")
+            if not arguments.get("hasFieldPhotos"):
+                tasks.append("Chụp và tải 2–3 ảnh hiện trường vườn dừa có tọa độ GPS.")
+            if not arguments.get("hasOwnerConsent"):
+                tasks.append("Hoàn tất xác nhận đồng thuận (Consent) về vị trí GPS & xử lý AI.")
+            if not arguments.get("hasFinancialEntries"):
+                tasks.append("Ghi nhận khoản chi chăm sóc/phân bón hoặc doanh thu thu hoạch tuần này vào Sổ Thu Chi.")
+            tasks.append("Kiểm tra cảnh báo rủi ro nếu có lời mời ký hợp đồng carbon yêu cầu đóng phí trước.")
+            return {"ok": True, "farmName": farm_name, "actionChecklist": tasks}
 
         return {"ok": False, "error": f"Unknown tool: {name}"}
     except (ValidationError, ValueError, TypeError) as exc:

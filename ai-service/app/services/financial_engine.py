@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timezone
 import re
+import unicodedata
 import uuid
 from app.schemas_financial import (
     ActualLedgerEntryInput,
@@ -415,7 +416,7 @@ def _compute_actual_adjusted_financials(
 
 def parse_natural_language_transaction(text: str) -> NaturalLanguageTransactionProposal:
     """Parse Vietnamese/English financial note into a structured FarmFinancialEntry proposal requiring user confirmation."""
-    raw = text.strip()
+    raw = unicodedata.normalize("NFC", text or "").strip()
     lowered = raw.lower()
 
     # Extract amount with VND unit multipliers (triệu/tr/trieu, nghìn/nghin/ngàn/k)

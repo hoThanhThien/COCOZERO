@@ -74,18 +74,18 @@ export default function ProjectsDirectoryPage() {
       {err && <div className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900">{err}</div>}
       {msg && <div className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">{msg}</div>}
 
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative w-full sm:w-56">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#526158]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm tên, mã hoặc phương pháp..."
-              className="rounded-lg border border-[#d8e2da] bg-white py-2 pl-9 pr-3 text-sm"
+              className="w-full rounded-lg border border-[#d8e2da] bg-white py-2 pl-9 pr-3 text-sm"
             />
           </div>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-[#d8e2da] bg-white px-3 py-2 text-sm">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full rounded-lg border border-[#d8e2da] bg-white px-3 py-2 text-sm sm:w-auto">
             <option value="">Tất cả giai đoạn</option>
             <option value="Concept">Concept</option>
             <option value="DataCollection">DataCollection</option>

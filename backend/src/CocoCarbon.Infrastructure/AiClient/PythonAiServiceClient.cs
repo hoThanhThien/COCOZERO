@@ -122,7 +122,8 @@ public interface IPythonAiServiceClient
     Task<(int StatusCode, string Body)> ForwardJsonAsync(
         string relativePath,
         string rawJson,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        string method = "POST");
 }
 
 public sealed class PythonAiServiceClient : IPythonAiServiceClient
@@ -232,14 +233,17 @@ public sealed class PythonAiServiceClient : IPythonAiServiceClient
     public async Task<(int StatusCode, string Body)> ForwardJsonAsync(
         string relativePath,
         string rawJson,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string method = "POST")
     {
         try
         {
-            using var msg = new HttpRequestMessage(HttpMethod.Post, relativePath.TrimStart('/'))
+            var httpMethod = new HttpMethod(method);
+            using var msg = new HttpRequestMessage(httpMethod, relativePath.TrimStart('/'));
+            if (httpMethod != HttpMethod.Get && httpMethod != HttpMethod.Head)
             {
-                Content = new StringContent(rawJson, Encoding.UTF8, "application/json")
-            };
+                msg.Content = new StringContent(rawJson ?? "{}", Encoding.UTF8, "application/json");
+            }
             var internalKey = _config["AI_SERVICE_INTERNAL_KEY"];
             if (!string.IsNullOrWhiteSpace(internalKey))
             {

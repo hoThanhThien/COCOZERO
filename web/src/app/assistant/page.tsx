@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Bot, ExternalLink, Send } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { apiFetch, getStoredToken } from "@/lib/api";
@@ -14,6 +15,7 @@ interface AssistantResult {
 }
 
 const SAMPLE_QUESTIONS = [
+  "Tín chỉ là gì và khác gì với ước tính sinh khối CTU 2015?",
   "Hệ số CTU 2015 cho Dừa Ta 10 năm tuổi là bao nhiêu và có giới hạn gì?",
   "Chi phí chăm sóc vườn dừa và chuẩn bị hồ sơ MRV nên theo dõi như thế nào?",
   "Có thể tính doanh thu bán tín chỉ carbon năm thứ 10 từ CTU 2015 không?",
@@ -48,9 +50,17 @@ export default function AssistantPage() {
   return (
     <AppShell
       title="Trợ lý Khoa học & Hồ sơ (Curated RAG)"
-      subtitle="Chỉ truy xuất từ nguồn đã kiểm chứng [R1]-[R12]; tự động từ chối khi thiếu chứng cứ để tránh hallucination"
+      subtitle="Chỉ truy xuất từ nguồn đã kiểm chứng [R1]-[R12], [AGRI1], [GF1]; tự động từ chối khi thiếu chứng cứ để tránh hallucination"
     >
       <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#cfe0d3] bg-[#f6fbf7] px-4 py-3 text-xs">
+          <span>
+            Muốn trợ lý <strong>hiểu nhu cầu &amp; hành động thay bạn</strong> (tính ROI, ghi sổ thu chi tự nhiên, soạn RFQ bán hàng, lập checklist cá nhân)?
+          </span>
+          <Link href="/financial-assistant" className="rounded-lg bg-[#15803d] px-3 py-1.5 font-semibold text-white hover:bg-[#123c29]">
+            Mở Trợ lý Tài chính AI &amp; 5 Tác vụ
+          </Link>
+        </div>
         <form onSubmit={ask} className="rounded-xl border border-[#d8e2da] bg-white p-5 space-y-4">
           <div className="flex flex-wrap gap-2">
             {SAMPLE_QUESTIONS.map((q) => (

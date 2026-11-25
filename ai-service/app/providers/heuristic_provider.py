@@ -171,6 +171,20 @@ class HeuristicFallbackProvider(BaseAiProvider):
                     lines.append(f"• {sim['baseSummary']['scenarioName']}: ROI={sim['baseSummary']['roiPercentAgriOnly']:.1f}%, Lợi nhuận={sim['baseSummary']['netProfitAgriOnlyVnd']:,.0f} VND")
                     for sc in sim.get("scenarios", []):
                         lines.append(f"• {sc['scenarioName']}: ROI={sc['roiPercentAgriOnly']:.1f}%, Lợi nhuận={sc['netProfitAgriOnlyVnd']:,.0f} VND")
+                elif tname == "parse_natural_language_transaction" and "transactionProposal" in tout:
+                    tp = tout["transactionProposal"]
+                    lines.append(
+                        f"[Trợ lý Thanh toán & Giao dịch — Chuẩn bị lệnh ghi Sổ Thu Chi]\n"
+                        f"• Hạng mục phân loại: {tp['category']} ({tp['suggestedEntryType']})\n"
+                        f"• Số tiền: {tp['amountVnd']:,.0f} VND ({'Chi phí' if tp['direction'] == 'expense' else 'Doanh thu'})\n"
+                        f"• {tp['explanation']}"
+                    )
+                elif tname == "generate_sales_rfq_draft" and "salesRfqDraft" in tout:
+                    lines.append(f"[Trợ lý Bán hàng & RFQ — Bản nháp chuẩn bị sẵn]\n{tout['salesRfqDraft']}")
+                elif tname == "build_personal_action_checklist" and "actionChecklist" in tout:
+                    lines.append(f"[Trợ lý Cá nhân — Danh sách công việc cho {tout.get('farmName', 'Vườn dừa')}]")
+                    for step_txt in tout["actionChecklist"]:
+                        lines.append(f"  - {step_txt}")
         elif intent in ("financial_calculation", "investment_analysis", "scenario_simulation") and isinstance(context_data, dict) and context_data.get("areaHa"):
             calc_args = {
                 "areaHa": context_data.get("areaHa", 1.0),

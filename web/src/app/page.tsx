@@ -16,16 +16,16 @@ export default function LandingPage() {
               <p className="text-xs text-[#526158]">Vùng dừa Bến Tre • Tỉnh Vĩnh Long</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Link
               href="/projects"
-              className="hidden rounded-lg border border-[#d8e2da] px-3.5 py-2 text-sm font-medium text-[#123c29] hover:bg-[#e8f5ec] sm:inline-block"
+              className="rounded-lg border border-[#d8e2da] px-3 py-2 text-xs font-medium text-[#123c29] hover:bg-[#e8f5ec] sm:px-3.5 sm:text-sm"
             >
-              Danh mục Dự án
+              Dự án
             </Link>
             <Link
               href="/login"
-              className="rounded-lg bg-[#15803d] px-4 py-2 text-sm font-semibold text-white hover:bg-[#123c29]"
+              className="rounded-lg bg-[#15803d] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#123c29] sm:px-4 sm:text-sm"
             >
               Đăng nhập / Trải nghiệm
             </Link>
@@ -38,13 +38,12 @@ export default function LandingPage() {
           <div className="inline-flex items-center gap-2 rounded-full border border-[#c7decb] bg-[#e8f5ec] px-3 py-1 text-xs font-semibold text-[#123c29]">
             HUMAN CENTERED • AI POWERED • SCIENCE FIRST
           </div>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-[#123c29] sm:text-4xl">
-            Từ vườn dừa đến giá trị xanh — Chuẩn hóa dữ liệu carbon và hồ sơ chuỗi giá trị dừa
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-[#123c29] sm:text-3xl lg:text-4xl">
+            Trợ lý AI hiểu nhu cầu &amp; hành động vì nông hộ — Từ vườn dừa đến giá trị xanh
           </h1>
           <p className="mt-3 max-w-3xl text-base leading-relaxed text-[#435149]">
-            CocoCarbon AI hỗ trợ nông hộ, hợp tác xã và đơn vị phát triển dự án số hóa vườn dừa vùng Bến Tre (tỉnh Vĩnh Long),
-            ước tính tham khảo theo nghiên cứu CTU 2015, phát hiện bất thường hồ sơ bằng AI có trích dẫn chứng cứ và kết nối
-            tìm hiểu qua danh mục dự án / RFQ minh bạch.
+            CocoCarbon AI giúp cuộc sống và quản trị kinh tế nông nghiệp trở nên <strong>tiện lợi, an toàn và thoải mái hơn</strong> qua hệ sinh thái Trợ lý AI hành động
+            (Tài chính • Giao dịch thu chi • Mua sắm vật tư an toàn • Bán hàng/RFQ • Nhắc việc cá nhân), kết hợp lá chắn chống lừa đảo đầu tư carbon trước khi ký kết hay mất tiền.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -124,7 +123,7 @@ export default function LandingPage() {
               <Bot className="h-5 w-5 text-[#15803d]" />
               Lối tắt trải nghiệm nhanh
             </h3>
-            <div className="mt-3 grid grid-cols-2 gap-2.5 text-sm">
+            <div className="mt-3 grid grid-cols-1 gap-2.5 text-sm sm:grid-cols-2">
               <Link href="/dashboard" className="rounded-lg border border-[#d8e2da] p-3 hover:bg-[#e8f5ec]">
                 Bảng điều khiển Nông hộ
               </Link>

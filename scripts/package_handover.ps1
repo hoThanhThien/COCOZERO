@@ -28,7 +28,7 @@ try {
             if ($excludeDirs -contains $seg) { return }
         }
         if ($_.Name -like ".env*" -and $_.Name -ne ".env.example") { return }
-        if ($_.Name -eq "google-services.json" -or $_.Name -like "*.db*" -or $_.Extension -in @(".db", ".sqlite", ".sqlite3", ".keystore", ".jks", ".pfx", ".pem", ".key")) { return }
+        if ($_.Name -eq ".runtime_ai_config.json" -or $_.Name -eq "google-services.json" -or $_.Name -like "*.db*" -or $_.Extension -in @(".db", ".sqlite", ".sqlite3", ".keystore", ".jks", ".pfx", ".pem", ".key")) { return }
 
         $dest = Join-Path $tempStage $rel
         if ($_.PSIsContainer) {

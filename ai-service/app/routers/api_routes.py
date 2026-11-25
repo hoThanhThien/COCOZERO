@@ -20,6 +20,11 @@ from app.schemas_financial import (
     ScenarioSimulationRequest,
     ScenarioSimulationResult,
 )
+from app.services.ai_runtime_config import (
+    TestAiProviderRequest,
+    UpdateAiProviderRequest,
+    ai_runtime_config,
+)
 from app.services.carbon_integrity import (
     CarbonIntegrityCheckRequest,
     CarbonIntegrityCheckResponse,
@@ -43,14 +48,7 @@ router = APIRouter()
 
 
 def get_provider() -> BaseAiProvider:
-    if settings.ai_provider.lower() == "gemini" and settings.gemini_api_key:
-        return GeminiInteractionsProvider(
-            api_key=settings.gemini_api_key,
-            model_name=settings.gemini_model,
-            timeout_seconds=settings.ai_request_timeout_seconds,
-            max_retries=settings.ai_max_retries,
-        )
-    return HeuristicFallbackProvider("GEMINI_API_KEY chưa cấu hình hoặc đang chạy ở chế độ fallback")
+    return ai_runtime_config.get_active_provider()
 
 
 def verify_key_if_configured(x_internal_api_key: str | None) -> None:
@@ -79,10 +77,13 @@ class SourceAttributionDto(BaseModel):
 class AiAssistantChatResponse(BaseModel):
     sessionId: str
     intent: str
+    assistantCapability: str = "Trợ lý Tài chính"
     language: str
     answer: str
     hasEnoughEvidence: bool
     toolCallsExecuted: list[dict[str, Any]] = Field(default_factory=list)
+    suggestedActions: list[dict[str, Any]] = Field(default_factory=list)
+    transactionProposal: Optional[NaturalLanguageTransactionProposal] = None
     financialResult: Optional[FinancialCalculationResult] = None
     scenarioResult: Optional[ScenarioSimulationResult] = None
     citations: list[SourceAttributionDto] = Field(default_factory=list)
@@ -112,6 +113,36 @@ def ai_financial_assistant(
     precomputed: dict[str, Any] = {}
     fin_result: FinancialCalculationResult | None = None
     sim_result: ScenarioSimulationResult | None = None
+    tx_proposal: NaturalLanguageTransactionProposal | None = None
+    suggested_actions: list[dict[str, Any]] = []
+
+    if intent_res.intent == "payment_transaction_assist":
+        tx_proposal = parse_natural_language_transaction(req.question)
+        precomputed["parse_natural_language_transaction"] = {"ok": True, "transactionProposal": tx_proposal.model_dump()}
+        suggested_actions.append({
+            "type": "confirm_ledger_entry",
+            "title": "Xác nhận ghi Sổ Thu Chi Vườn",
+            "detail": f"{tx_proposal.category}: {tx_proposal.amountVnd:,.0f} đ",
+        })
+    elif intent_res.intent == "sales_rfq_assist":
+        sales_out = execute_tool("generate_sales_rfq_draft", {
+            "farmName": merged_context.get("farmName") or (req.financialInput.farmName if req.financialInput else "Vườn dừa CocoCarbon"),
+            "areaHa": merged_context.get("areaHa") or (req.financialInput.investment.areaHa if req.financialInput else 1.5),
+            "annualYieldUnitsPerHa": (req.financialInput.revenue.annualCoconutYieldUnitsPerHa if req.financialInput else 9000),
+            "buyerInquiry": req.question,
+        })
+        precomputed["generate_sales_rfq_draft"] = sales_out
+        suggested_actions.append({"type": "open_rfq", "title": "Mở Không gian Dự án / RFQ", "href": "/projects"})
+    elif intent_res.intent == "personal_workflow_assist":
+        chk_out = execute_tool("build_personal_action_checklist", {
+            "farmName": merged_context.get("farmName") or "Vườn dừa CocoCarbon",
+            "hasLandDocument": bool(merged_context.get("hasLandDocument", False)),
+            "hasFieldPhotos": bool(merged_context.get("hasFieldPhotos", True)),
+            "hasOwnerConsent": bool(merged_context.get("hasOwnerConsent", True)),
+            "hasFinancialEntries": bool(merged_context.get("farmId")),
+        })
+        precomputed["build_personal_action_checklist"] = chk_out
+        suggested_actions.append({"type": "open_documents", "title": "Kiểm tra Hồ sơ & Chứng từ", "href": "/documents"})
 
     active_fin_input = req.financialInput
     if active_fin_input is None and session_ctx.get("latestFinancialInput") and intent_res.intent in ("financial_calculation", "scenario_simulation", "financial_report"):
@@ -127,6 +158,12 @@ def ai_financial_assistant(
         else:
             fin_result = run_financial_calculation(active_fin_input)
             precomputed["calculate_financial_metrics"] = {"ok": True, "calculation": fin_result.model_dump()}
+            if intent_res.intent == "shopping_procurement_assist":
+                suggested_actions.append({
+                    "type": "open_proposal_guard",
+                    "title": "Kiểm tra độ an toàn đề nghị vật tư / carbon trước khi thanh toán",
+                    "href": "/documents",
+                })
 
     provider = get_provider()
     answer_text, tool_traces, is_fallback = provider.run_assistant_with_tools(
@@ -154,7 +191,7 @@ def ai_financial_assistant(
         for s in retrieved
     ]
 
-    has_evidence = bool(citations or fin_result or sim_result or tool_traces)
+    has_evidence = bool(citations or fin_result or sim_result or tx_proposal or tool_traces or precomputed)
     if intent_res.intent == "unknown_or_out_of_scope" and not has_evidence:
         has_evidence = False
 
@@ -171,10 +208,13 @@ def ai_financial_assistant(
     return AiAssistantChatResponse(
         sessionId=sid,
         intent=intent_res.intent,
+        assistantCapability=intent_res.assistantCapability,
         language=intent_res.language,
         answer=answer_text,
         hasEnoughEvidence=has_evidence,
         toolCallsExecuted=tool_traces,
+        suggestedActions=suggested_actions,
+        transactionProposal=tx_proposal,
         financialResult=fin_result,
         scenarioResult=sim_result,
         citations=citations,
@@ -260,6 +300,7 @@ def financial_reports(
     report_sections = build_deterministic_financial_report(calc, sim, retrieved)
 
     provider = get_provider()
+    is_fallback_mode = provider.provider_name == "heuristic"
     return FinancialReportResponse(
         reportId=str(uuid.uuid4()),
         generatedAt=datetime.now(timezone.utc).isoformat(),
@@ -268,9 +309,9 @@ def financial_reports(
         scenarioComparison=sim,
         report=report_sections,
         citations=retrieved,
-        provider=provider.provider_name if settings.gemini_api_key else "heuristic_fallback",
+        provider=provider.provider_name if not is_fallback_mode else "heuristic_fallback",
         modelName=provider.model_name,
-        isFallback=not bool(settings.gemini_api_key),
+        isFallback=is_fallback_mode,
         disclaimer=calc.scientificAndLegalBoundary,
     )
 
@@ -300,3 +341,27 @@ def carbon_proposal_check(
 ) -> ProposalFraudCheckResponse:
     verify_key_if_configured(x_internal_api_key)
     return evaluate_investment_proposal(req)
+
+
+@router.get("/internal/v1/admin/ai-provider")
+def get_admin_ai_provider(x_internal_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+    verify_key_if_configured(x_internal_api_key)
+    return ai_runtime_config.get_public_status()
+
+
+@router.post("/internal/v1/admin/ai-provider")
+def update_admin_ai_provider(
+    req: UpdateAiProviderRequest,
+    x_internal_api_key: str | None = Header(default=None),
+) -> dict[str, Any]:
+    verify_key_if_configured(x_internal_api_key)
+    return ai_runtime_config.update(req)
+
+
+@router.post("/internal/v1/admin/ai-provider/test")
+def test_admin_ai_provider(
+    req: TestAiProviderRequest,
+    x_internal_api_key: str | None = Header(default=None),
+) -> dict[str, Any]:
+    verify_key_if_configured(x_internal_api_key)
+    return ai_runtime_config.test_connection(req)

@@ -85,14 +85,36 @@ export function AppShell({
       </header>
 
       <div className="mx-auto flex max-w-[1440px]">
+        {mobileOpen && (
+          <div
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+            className="fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px] lg:hidden"
+          />
+        )}
+
         {/* Sidebar */}
         <aside
           className={`${
-            mobileOpen ? "fixed inset-y-0 left-0 z-40 block w-72" : "hidden"
-          } border-r border-[#d8e2da] bg-white lg:sticky lg:top-0 lg:block lg:h-screen lg:w-68 lg:shrink-0`}
+            mobileOpen ? "fixed inset-y-0 left-0 z-40 block w-72 shadow-xl" : "hidden"
+          } overflow-y-auto border-r border-[#d8e2da] bg-white lg:sticky lg:top-0 lg:block lg:h-screen lg:w-64 lg:shrink-0`}
         >
-          <div className="flex h-full flex-col justify-between p-4">
+          <div className="flex min-h-full flex-col justify-between p-4">
             <div>
+              <div className="mb-2 flex items-center justify-between lg:hidden">
+                <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 font-bold text-[#123c29]">
+                  <Sprout className="h-5 w-5 text-[#15803d]" />
+                  <span>CocoCarbon AI</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setMobileOpen(false)}
+                  aria-label="Đóng menu"
+                  className="rounded-lg border border-[#d8e2da] p-1.5 text-[#123c29]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
               <Link href="/" className="hidden items-center gap-2.5 px-2 py-2 lg:flex">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#123c29] text-white">
                   <Sprout className="h-5 w-5" />
@@ -170,13 +192,13 @@ export function AppShell({
         </aside>
 
         {/* Main Content */}
-        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-          <div className="mb-6 flex flex-col gap-2 border-b border-[#d8e2da] pb-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#123c29]">{title}</h1>
-              {subtitle && <p className="mt-1 text-sm text-[#526158]">{subtitle}</p>}
+        <main className="min-w-0 flex-1 p-3 sm:p-6 lg:p-8">
+          <div className="mb-5 flex flex-col gap-2 border-b border-[#d8e2da] pb-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold tracking-tight text-[#123c29] sm:text-2xl">{title}</h1>
+              {subtitle && <p className="mt-1 text-xs leading-relaxed text-[#526158] sm:text-sm">{subtitle}</p>}
             </div>
-            <div className="text-xs text-[#526158]">
+            <div className="shrink-0 text-[11px] text-[#526158] sm:text-xs">
               Nền tảng chuẩn hóa dữ liệu • Không thay thế tổ chức thẩm định/registry
             </div>
           </div>

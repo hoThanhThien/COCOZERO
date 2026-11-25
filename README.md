@@ -72,7 +72,7 @@ Truy cập Web qua Nginx tại `http://localhost` và Swagger API tại `http://
   cd backend
   dotnet test CocoCarbon.sln
   ```
-- **Python AI Tests** (19 tests):
+- **Python AI Tests** (22 tests):
   ```bash
   cd ai-service
   uv run pytest -v

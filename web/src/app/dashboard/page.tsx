@@ -68,7 +68,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Link href="/farms" className="flex items-center gap-2 rounded-xl bg-[#123c29] p-4 text-sm font-semibold text-white hover:bg-[#15803d]">
               <Plus className="h-4 w-4" /> Khai báo vườn dừa mới
             </Link>
@@ -85,7 +85,7 @@ export default function DashboardPage() {
 
           <div className="rounded-xl border border-[#cfe0d3] bg-white p-5">
             <h2 className="text-sm font-bold text-[#123c29]">Lộ trình 4 bước hướng dẫn (Human-Centered Guided Flow)</h2>
-            <div className="mt-3 grid gap-3 sm:grid-cols-4">
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 { step: "Bước 1", title: "Hồ sơ & Đồng thuận", href: "/onboarding", desc: "Xác nhận GPS, ảnh và bảo vệ dữ liệu cá nhân." },
                 { step: "Bước 2", title: "Vườn dừa & Tài chính xanh", href: "/farms", desc: "Khai báo diện tích, số cây, chi phí chăm sóc thực tế." },
@@ -99,7 +99,7 @@ export default function DashboardPage() {
                 </Link>
               ))}
             </div>
-            <div className="mt-3 grid gap-2 rounded-lg border border-[#e6ede7] bg-[#fafcfa] p-3 text-[11px] text-[#435149] sm:grid-cols-4">
+            <div className="mt-3 grid gap-2 rounded-lg border border-[#e6ede7] bg-[#fafcfa] p-3 text-[11px] text-[#435149] sm:grid-cols-2 lg:grid-cols-4">
               <div><strong>Biomass:</strong> Khối lượng sinh khối cây dừa (tươi/khô).</div>
               <div><strong>Carbon stock:</strong> Trữ lượng C tại 1 thời điểm (chưa phải tín chỉ).</div>
               <div><strong>CO2e tham khảo:</strong> Giá trị CTU 2015 theo tuổi 4 hoặc 10 năm.</div>

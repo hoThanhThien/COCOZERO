@@ -1,6 +1,8 @@
+using System.Text.Json;
 using CocoCarbon.Api.Contracts;
 using CocoCarbon.Domain.Entities;
 using CocoCarbon.Domain.Enums;
+using CocoCarbon.Infrastructure.AiClient;
 using CocoCarbon.Infrastructure.Persistence;
 using CocoCarbon.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +14,10 @@ namespace CocoCarbon.Api.Controllers;
 [ApiController]
 [Route("/api/v1/admin")]
 [Authorize(Roles = "Admin")]
-public sealed class AdminController(CocoCarbonDbContext db, IAuditService audit) : ControllerBase
+public sealed class AdminController(
+    CocoCarbonDbContext db,
+    IAuditService audit,
+    IPythonAiServiceClient aiClient) : ControllerBase
 {
     [HttpGet("users")]
     public async Task<IActionResult> ListUsers(CancellationToken ct)
@@ -195,5 +200,43 @@ public sealed class AdminController(CocoCarbonDbContext db, IAuditService audit)
             pendingDeletionCount,
             totalAuditLogs
         });
+    }
+
+    [HttpGet("ai-provider")]
+    public async Task<IActionResult> GetAiProviderConfig(CancellationToken ct)
+    {
+        var (status, body) = await aiClient.ForwardJsonAsync("internal/v1/admin/ai-provider", "{}", ct, "GET");
+        return new ContentResult { StatusCode = status, ContentType = "application/json", Content = body };
+    }
+
+    [HttpPost("ai-provider")]
+    public async Task<IActionResult> UpdateAiProviderConfig([FromBody] JsonElement body, CancellationToken ct)
+    {
+        var (status, respBody) = await aiClient.ForwardJsonAsync("internal/v1/admin/ai-provider", body.GetRawText(), ct, "POST");
+        if (status is >= 200 and < 300)
+        {
+            var provider = body.TryGetProperty("activeProvider", out var pEl) ? pEl.GetString() : "unknown";
+            var model = body.TryGetProperty("modelName", out var mEl) ? mEl.GetString() : "";
+            var cleared = body.TryGetProperty("clearApiKey", out var cEl) && cEl.ValueKind == JsonValueKind.True;
+            var keyUpdated = body.TryGetProperty("apiKey", out var kEl) && !string.IsNullOrWhiteSpace(kEl.GetString());
+            await audit.RecordAsync(
+                User.GetInternalUserId(),
+                User.GetEmail(),
+                "ADMIN_AI_PROVIDER_UPDATED",
+                "AiProviderConfig",
+                provider ?? "unknown",
+                null,
+                new { activeProvider = provider, modelName = model, keyUpdated, keyCleared = cleared },
+                null,
+                ct);
+        }
+        return new ContentResult { StatusCode = status, ContentType = "application/json", Content = respBody };
+    }
+
+    [HttpPost("ai-provider/test")]
+    public async Task<IActionResult> TestAiProviderConfig([FromBody] JsonElement body, CancellationToken ct)
+    {
+        var (status, respBody) = await aiClient.ForwardJsonAsync("internal/v1/admin/ai-provider/test", body.GetRawText(), ct, "POST");
+        return new ContentResult { StatusCode = status, ContentType = "application/json", Content = respBody };
     }
 }

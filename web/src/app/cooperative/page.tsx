@@ -86,7 +86,7 @@ export default function CooperativePage() {
               <OriginBadge tag={dashboard.cooperative.dataOriginTag} />
             </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-4">
+            <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <div className="rounded-lg border border-[#e2eae3] p-3">
                 <p className="text-xs text-[#526158]">Thành viên ủy quyền</p>
                 <p className="text-2xl font-bold text-[#123c29]">{dashboard.summary.authorizedMemberCount}</p>
@@ -110,7 +110,7 @@ export default function CooperativePage() {
           <div className="rounded-xl border border-[#d8e2da] bg-white p-5">
             <h3 className="text-base font-bold text-[#123c29]">Danh sách vườn được ủy quyền & Tọa độ hiện trường</h3>
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full min-w-[600px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-[#e2eae3] text-[#526158]">
                     <th className="py-2 pr-3">Tên vườn</th>

@@ -51,11 +51,15 @@ try {
     $projects = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/projects"
     Write-Host "5. Projects directory count: $($projects.projects.Count)"
 
-    $rag = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/ai/assistant/query" -Method Post -Headers @{ Authorization = "Bearer dev-demo:farmer"; "Content-Type" = "application/json" } -Body '{"role":"Farmer","question":"CTU 2015 Dua Ta 10 nam va chi phi cham soc MRV?"}'
+    $rag = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/ai/assistant/query" -Method Post -Headers @{ Authorization = "Bearer dev-demo:farmer"; "Content-Type" = "application/json" } -Body '{"role":"Farmer","question":"tin chi la gi"}'
+    if (-not $rag.hasEnoughEvidence) { throw "Expected RAG evidence for 'tin chi la gi'." }
     Write-Host "6. C# -> Python AI Assistant hasEnoughEvidence=$($rag.hasEnoughEvidence), citations=$($rag.citations.Count)"
 
     $posture = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/admin/security-posture" -Headers @{ Authorization = "Bearer dev-demo:admin" }
     Write-Host "7. Admin Security Posture OK (auth=$($posture.firebaseTokenVerification))"
+
+    $aiProv = Invoke-RestMethod "http://127.0.0.1:8080/api/v1/admin/ai-provider" -Headers @{ Authorization = "Bearer dev-demo:admin" }
+    Write-Host "7b. Admin Multi-AI Provider status OK (active=$($aiProv.activeProvider), presets=$($aiProv.providers.Count))"
 
     $finInputObj = @{
         farmName     = "Vuon Dua Demo"

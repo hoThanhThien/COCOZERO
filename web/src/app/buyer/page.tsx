@@ -93,14 +93,14 @@ export default function BuyerWorkspacePage() {
                     <strong>Phản hồi bên dự án:</strong> {r.sellerResponse}
                   </div>
                 )}
-                <div className="flex gap-2 pt-1">
+                <div className="flex flex-col gap-2 pt-1 sm:flex-row">
                   <input
                     value={replyMap[r.id] || ""}
                     onChange={(e) => setReplyMap({ ...replyMap, [r.id]: e.target.value })}
                     placeholder="Phản hồi (dành cho Project Developer)..."
-                    className="flex-1 rounded-lg border border-[#d8e2da] px-2.5 py-1.5 text-xs"
+                    className="flex-1 rounded-lg border border-[#d8e2da] px-2.5 py-2 text-xs sm:py-1.5"
                   />
-                  <button type="button" onClick={() => respondRfq(r.id)} className="rounded-lg bg-[#123c29] px-3 py-1.5 font-semibold text-white">
+                  <button type="button" onClick={() => respondRfq(r.id)} className="rounded-lg bg-[#123c29] px-3 py-2 font-semibold text-white sm:py-1.5">
                     Gửi phản hồi
                   </button>
                 </div>

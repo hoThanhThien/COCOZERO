@@ -17,6 +17,7 @@ from app.schemas import (
     ExtractedField,
     FraudSignal,
 )
+from app.services.ai_runtime_config import ai_runtime_config
 from app.services.document_extractor import (
     inspect_document_bytes,
     run_consistency_and_duplicate_checks,
@@ -43,14 +44,7 @@ app.include_router(api_router)
 
 
 def get_provider() -> BaseAiProvider:
-    if settings.ai_provider.lower() == "gemini" and settings.gemini_api_key:
-        return GeminiInteractionsProvider(
-            api_key=settings.gemini_api_key,
-            model_name=settings.gemini_model,
-            timeout_seconds=settings.ai_request_timeout_seconds,
-            max_retries=settings.ai_max_retries,
-        )
-    return HeuristicFallbackProvider("GEMINI_API_KEY chưa cấu hình hoặc đang chạy ở chế độ fallback")
+    return ai_runtime_config.get_active_provider()
 
 
 def verify_internal_key(x_internal_api_key: str | None) -> None:
@@ -61,10 +55,12 @@ def verify_internal_key(x_internal_api_key: str | None) -> None:
 @app.get("/health")
 def health() -> dict[str, object]:
     sources = validate_curated_sources()
+    status = ai_runtime_config.get_public_status()
     return {
         "status": "healthy",
-        "provider": settings.ai_provider,
-        "model": settings.gemini_model,
+        "provider": status["activeProvider"],
+        "model": status["activeModelName"],
+        "isFallback": status["isUsingFallbackEngine"],
         "promptVersion": settings.prompt_version,
         "ragSourcesLoaded": len(sources),
     }

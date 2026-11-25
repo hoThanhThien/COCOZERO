@@ -134,9 +134,39 @@ interface ChatMessage {
   role: "user" | "assistant";
   text: string;
   intent?: string;
+  capability?: string;
   tools?: string[];
+  suggestedActions?: { type: string; title: string; href?: string; detail?: string }[];
   citations?: { sourceCode: string; title: string }[];
 }
+
+const ASSISTANT_CAPABILITIES = [
+  {
+    name: "Trợ lý Tài chính",
+    desc: "Đồng hành quản lý tài chính vườn, ROI, dòng tiền & báo cáo.",
+    prompt: "Tính ROI, NPV và đánh giá sức khỏe dòng tiền cho vườn dừa hiện tại",
+  },
+  {
+    name: "Trợ lý Thanh toán",
+    desc: "Hiểu câu tự nhiên, bóc tách & chuẩn bị lệnh ghi giao dịch an toàn.",
+    prompt: "Hôm nay chi 3.5 triệu mua phân hữu cơ mụn dừa cho vườn",
+  },
+  {
+    name: "Trợ lý Mua sắm",
+    desc: "Ước tính ngân sách vật tư, tưới tiêu & chặn bẫy gói carbon giả.",
+    prompt: "Ước tính ngân sách mua sắm vật tư tưới tiêu và kiểm tra an toàn gói MRV",
+  },
+  {
+    name: "Trợ lý Bán hàng",
+    desc: "Tư vấn phụ phẩm gáo/xơ/mụn dừa & tự động soạn thư phản hồi RFQ.",
+    prompt: "Hãy soạn thư phản hồi bán hàng / RFQ minh bạch cho doanh nghiệp mua dừa",
+  },
+  {
+    name: "Trợ lý Cá nhân",
+    desc: "Lập checklist công việc, hồ sơ còn thiếu & nhắc tiến độ MRV.",
+    prompt: "Lập checklist việc cần làm cá nhân và hồ sơ còn thiếu cho vườn dừa",
+  },
+];
 
 export default function FinancialAssistantPage() {
   const [farms, setFarms] = useState<FarmDto[]>([]);
@@ -314,8 +344,11 @@ export default function FinancialAssistantPage() {
     try {
       const res = await apiFetch<{
         intent: string;
+        assistantCapability?: string;
         answer: string;
         toolCallsExecuted: { tool: string }[];
+        suggestedActions?: { type: string; title: string; href?: string; detail?: string }[];
+        transactionProposal?: NonNullable<typeof nlTxProposal> | null;
         citations: { sourceCode: string; title: string }[];
         financialResult?: CalcResult | null;
         scenarioResult?: { baseSummary: ScenarioItem; scenarios: ScenarioItem[] } | null;
@@ -331,13 +364,16 @@ export default function FinancialAssistantPage() {
       });
       if (res.financialResult) setCalcResult(res.financialResult);
       if (res.scenarioResult) setScenarios(res.scenarioResult);
+      if (res.transactionProposal) setNlTxProposal(res.transactionProposal);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           text: res.answer,
           intent: res.intent,
+          capability: res.assistantCapability,
           tools: res.toolCallsExecuted.map((t) => t.tool),
+          suggestedActions: res.suggestedActions,
           citations: res.citations,
         },
       ]);
@@ -361,6 +397,34 @@ export default function FinancialAssistantPage() {
       {msg && <div className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">{msg}</div>}
 
       <div className="space-y-6">
+        {/* MoMo Tech Contest 2026 Action-Oriented AI Assistant Spotlight */}
+        <div className="rounded-xl border border-[#cfe0d3] bg-gradient-to-r from-[#f5faf6] to-white p-5 space-y-3">
+          <div>
+            <span className="inline-block rounded-full bg-[#123c29] px-2.5 py-0.5 text-[10px] font-bold text-white">
+              TRỢ LÝ AI HÀNH ĐỘNG • TIỆN LỢI • AN TOÀN • THOẢI MÁI
+            </span>
+            <h2 className="mt-1.5 text-base font-bold text-[#123c29]">
+              Trợ lý hiểu nhu cầu &amp; hành động thay người dùng trên 5 tác vụ thực tế
+            </h2>
+            <p className="text-xs text-[#526158]">
+              Bấm chọn một vai trò bên dưới để trợ lý tự động gọi công cụ tính toán, phân loại giao dịch, soạn RFQ, lập checklist việc cần làm hoặc thẩm định rủi ro mua gói carbon:
+            </p>
+          </div>
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
+            {ASSISTANT_CAPABILITIES.map((cap) => (
+              <button
+                key={cap.name}
+                type="button"
+                onClick={() => setChatInput(cap.prompt)}
+                className="rounded-xl border border-[#d8e2da] bg-white p-3 text-left transition hover:border-[#15803d] hover:bg-[#e8f5ec]"
+              >
+                <p className="text-xs font-bold text-[#123c29]">{cap.name}</p>
+                <p className="mt-1 text-[11px] leading-snug text-[#526158]">{cap.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Natural Language Farm Ledger Recording (with explicit user confirmation) */}
         <div className="rounded-xl border border-[#d8e2da] bg-white p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -437,7 +501,7 @@ export default function FinancialAssistantPage() {
               </select>
             )}
 
-            <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-1 gap-2.5 text-xs sm:grid-cols-2 md:grid-cols-3">
               <div>
                 <label className="font-semibold text-[#526158]">Diện tích (ha)</label>
                 <input type="number" step="0.1" value={areaHa} onChange={(e) => setAreaHa(e.target.value)} className="mt-1 w-full rounded border border-[#d8e2da] px-2 py-1.5" />
@@ -482,7 +546,7 @@ export default function FinancialAssistantPage() {
                 Mô phỏng thêm Kịch bản Carbon Giả định (tùy chọn — không phải tín chỉ phát hành)
               </label>
               {includeCarbonHyp && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   <input type="number" value={hypCarbonTonnes} onChange={(e) => setHypCarbonTonnes(e.target.value)} placeholder="Tổng tCO2e giả định" className="rounded border bg-white px-2 py-1" />
                   <input type="number" value={hypCarbonPrice} onChange={(e) => setHypCarbonPrice(e.target.value)} placeholder="Giá giả định VND/t" className="rounded border bg-white px-2 py-1" />
                   <input type="number" step="0.1" value={hypCarbonProb} onChange={(e) => setHypCarbonProb(e.target.value)} placeholder="Xác suất (0-1)" className="rounded border bg-white px-2 py-1" />
@@ -532,6 +596,7 @@ export default function FinancialAssistantPage() {
                     <div key={idx} className={`rounded-lg p-3 text-xs ${m.role === "user" ? "ml-6 bg-[#e8f5ec] text-[#123c29]" : "mr-4 border border-[#e2eae3] bg-[#fafcfa]"}`}>
                       {m.intent && (
                         <div className="mb-1 flex flex-wrap gap-1.5 text-[10px]">
+                          {m.capability && <span className="rounded bg-[#15803d] px-1.5 py-0.5 font-semibold text-white">{m.capability}</span>}
                           <span className="rounded bg-[#123c29] px-1.5 py-0.5 text-white">intent: {m.intent}</span>
                           {m.tools?.map((t) => (
                             <span key={t} className="rounded bg-emerald-100 px-1.5 py-0.5 font-semibold text-emerald-900">tool: {t}</span>
@@ -539,6 +604,15 @@ export default function FinancialAssistantPage() {
                         </div>
                       )}
                       <p className="whitespace-pre-line leading-relaxed">{m.text}</p>
+                      {m.suggestedActions && m.suggestedActions.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {m.suggestedActions.map((act, aIdx) => (
+                            <span key={aIdx} className="rounded border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-900">
+                              Hành động: {act.title}{act.detail ? ` (${act.detail})` : ""}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {m.citations && m.citations.length > 0 && (
                         <p className="mt-1 text-[10px] text-[#526158]">
                           Nguồn: {m.citations.map((c) => `[${c.sourceCode}]`).join(", ")}
@@ -592,7 +666,7 @@ export default function FinancialAssistantPage() {
                     {calcResult.actualVsBudget.isOverBudget ? "VƯỢT NGÂN SÁCH NĂM" : "TRONG NGÂN SÁCH"} ({calcResult.actualVsBudget.expenseUtilizationPercent.toFixed(1)}%)
                   </span>
                 </div>
-                <div className="grid gap-3 text-xs sm:grid-cols-4">
+                <div className="grid gap-3 text-xs sm:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-lg border border-[#dce6de] bg-white p-2.5">
                     <span className="text-[#526158]">Chi thực tế / Kế hoạch năm 1</span>
                     <p className="mt-0.5 font-bold text-[#123c29]">
@@ -699,26 +773,28 @@ export default function FinancialAssistantPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-[#d8e2da] bg-white p-5">
+              <div className="rounded-xl border border-[#d8e2da] bg-white p-5 min-w-0">
                 <h3 className="flex items-center gap-2 text-sm font-bold text-[#123c29]">
                   <TrendingUp className="h-4 w-4 text-[#15803d]" /> Biểu đồ Dòng tiền Lũy kế (Năm 0 → {calcResult.horizonYears})
                 </h3>
-                <div className="mt-4 flex h-44 items-end gap-2 border-b border-[#d8e2da] pb-2">
-                  {calcResult.cashFlowSchedule.map((row) => {
-                    const val = row.cumulativeCashFlowAgriOnlyVnd;
-                    const heightPct = Math.max(8, Math.round((Math.abs(val) / maxAbsCash) * 100));
-                    return (
-                      <div key={row.year} className="flex flex-1 flex-col items-center justify-end h-full">
-                        <span className="mb-1 text-[9px] text-[#526158]">{(val / 1_000_000).toFixed(0)}M</span>
-                        <div
-                          className={`w-full max-w-[34px] rounded-t ${val >= 0 ? "bg-[#15803d]" : "bg-amber-600"}`}
-                          style={{ height: `${heightPct}%` }}
-                          title={`Năm ${row.year}: ${val.toLocaleString("vi-VN")} đ`}
-                        />
-                        <span className="mt-1 text-[10px] font-semibold">N{row.year}</span>
-                      </div>
-                    );
-                  })}
+                <div className="mt-4 overflow-x-auto pb-1">
+                  <div className="flex h-44 min-w-[320px] items-end gap-2 border-b border-[#d8e2da] pb-2">
+                    {calcResult.cashFlowSchedule.map((row) => {
+                      const val = row.cumulativeCashFlowAgriOnlyVnd;
+                      const heightPct = Math.max(8, Math.round((Math.abs(val) / maxAbsCash) * 100));
+                      return (
+                        <div key={row.year} className="flex flex-1 min-w-[36px] flex-col items-center justify-end h-full">
+                          <span className="mb-1 text-[9px] text-[#526158]">{(val / 1_000_000).toFixed(0)}M</span>
+                          <div
+                            className={`w-full max-w-[34px] rounded-t ${val >= 0 ? "bg-[#15803d]" : "bg-amber-600"}`}
+                            style={{ height: `${heightPct}%` }}
+                            title={`Năm ${row.year}: ${val.toLocaleString("vi-VN")} đ`}
+                          />
+                          <span className="mt-1 text-[10px] font-semibold">N{row.year}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
                 <p className="mt-2 text-[11px] text-[#526158]">Đơn vị nhãn cột: triệu VND (dòng tiền lũy kế thuần nông nghiệp).</p>
               </div>
@@ -733,7 +809,7 @@ export default function FinancialAssistantPage() {
               <GitCompare className="h-5 w-5 text-[#15803d]" /> So sánh Kịch bản Tài chính (Scenario Simulator)
             </h3>
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full min-w-[620px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-[#e2eae3] text-[#526158]">
                     <th className="py-2 pr-3">Kịch bản</th>

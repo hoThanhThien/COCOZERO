@@ -1,9 +1,20 @@
 import json
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 
 _SOURCES_PATH = Path(__file__).resolve().parent.parent / "data" / "curated_sources.json"
+
+
+def _norm(text: str) -> str:
+    return unicodedata.normalize("NFC", text or "").lower().strip()
+
+
+def _fold_accents(text: str) -> str:
+    nfc = _norm(text).replace("đ", "d")
+    nfd = unicodedata.normalize("NFD", nfc)
+    return "".join(ch for ch in nfd if unicodedata.category(ch) != "Mn")
 
 _STOPWORDS = {
     "tại", "năm", "của", "cho", "bao", "nhiêu", "làm", "sao", "nào", "với",
@@ -58,15 +69,17 @@ def retrieve_relevant_sources(
     category: str | None = None,
     top_k: int = 4,
 ) -> list[dict[str, Any]]:
-    q = question.lower()
+    q = _norm(question)
+    q_folded = _fold_accents(question)
 
-    if any(term in q for term in _OUT_OF_SCOPE_PATTERNS):
+    if any(term in q or _fold_accents(term) in q_folded for term in _OUT_OF_SCOPE_PATTERNS):
         return []
 
     tokens = [
         tok for tok in re.findall(r"[\w\d]+", q)
         if len(tok) >= 3 and tok not in _STOPWORDS
     ]
+    folded_tokens = [_fold_accents(tok) for tok in tokens]
     sources = load_curated_sources()
     scored: list[tuple[int, dict[str, Any]]] = []
 
@@ -75,11 +88,14 @@ def retrieve_relevant_sources(
             continue
         score = 0
         for kw in src.get("keywords", []):
-            if kw.lower() in q:
+            kw_nfc = _norm(kw)
+            kw_fold = _fold_accents(kw)
+            if kw_nfc in q or (kw_fold and kw_fold in q_folded):
                 score += 3
-        haystack = f"{src['title']} {src['excerpt']} {src.get('category', '')}".lower()
-        for token in tokens:
-            if token in haystack:
+        haystack = _norm(f"{src['title']} {src['excerpt']} {src.get('category', '')}")
+        haystack_folded = _fold_accents(haystack)
+        for token, f_tok in zip(tokens, folded_tokens):
+            if token in haystack or f_tok in haystack_folded:
                 score += 1
         if score >= 3:
             enriched = dict(src)

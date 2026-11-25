@@ -47,6 +47,7 @@ describe("CocoCarbon Web Scientific & Security Guardrails", () => {
       const farmDetailPage = fs.readFileSync(path.resolve(__dirname, "../src/app/farms/[id]/page.tsx"), "utf-8");
       const finPage = fs.readFileSync(path.resolve(__dirname, "../src/app/financial-assistant/page.tsx"), "utf-8");
       const loginClient = fs.readFileSync(path.resolve(__dirname, "../src/app/login/LoginClient.tsx"), "utf-8");
+      const adminPage = fs.readFileSync(path.resolve(__dirname, "../src/app/admin/page.tsx"), "utf-8");
       expect(docsPage).toContain("AI Anti-Fraud Indicator");
       expect(docsPage).toContain("/api/carbon/integrity-check");
       expect(docsPage).toContain("/api/carbon/proposal-check");
@@ -57,8 +58,20 @@ describe("CocoCarbon Web Scientific & Security Guardrails", () => {
       expect(finPage).toContain("/api/financial/reports");
       expect(finPage).toContain("/api/financial/parse-transaction");
       expect(finPage).toContain("Promise.allSettled");
+      expect(finPage).toContain("assistantCapability");
+      expect(adminPage).toContain("/api/v1/admin/ai-provider");
       expect(loginClient).toContain("signInWithEmailPasswordFirebase");
       expect(loginClient).not.toContain("FIREBASE_AUTH_DEV_ALLOW_MOCK");
       expect(loginClient).not.toContain("NEXT_PUBLIC_FIREBASE_API_KEY");
     });
+  });
+
+  it("web pages enforce mobile-first responsive grids and overflow protection", () => {
+    const appShell = fs.readFileSync(path.resolve(__dirname, "../src/components/AppShell.tsx"), "utf-8");
+    const globalsCss = fs.readFileSync(path.resolve(__dirname, "../src/app/globals.css"), "utf-8");
+    const finPage = fs.readFileSync(path.resolve(__dirname, "../src/app/financial-assistant/page.tsx"), "utf-8");
+    expect(appShell).toContain("backdrop-blur");
+    expect(appShell).toContain("overflow-y-auto");
+    expect(globalsCss).toContain("overflow-x: clip");
+    expect(finPage).not.toMatch(/className="grid grid-cols-3\b/);
   });

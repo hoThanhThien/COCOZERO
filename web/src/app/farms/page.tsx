@@ -93,7 +93,7 @@ export default function FarmsPage() {
             <label className="block text-xs font-semibold text-[#526158]">Tên vườn</label>
             <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="VD: Vườn Dừa Ta Hộ Ông Năm" className="mt-1 w-full rounded-lg border border-[#d8e2da] px-3 py-2 text-sm" />
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold text-[#526158]">Tỉnh/TP hiện hành</label>
               <input value={province} onChange={(e) => setProvince(e.target.value)} required className="mt-1 w-full rounded-lg border border-[#d8e2da] px-3 py-2 text-sm" />
@@ -103,7 +103,7 @@ export default function FarmsPage() {
               <input value={commune} onChange={(e) => setCommune(e.target.value)} required className="mt-1 w-full rounded-lg border border-[#d8e2da] px-3 py-2 text-sm" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold text-[#526158]">Diện tích (ha)</label>
               <input type="number" step="0.01" min="0.01" value={areaHa} onChange={(e) => setAreaHa(e.target.value)} required className="mt-1 w-full rounded-lg border border-[#d8e2da] px-3 py-2 text-sm" />
@@ -113,7 +113,7 @@ export default function FarmsPage() {
               <input type="number" min="1" step="1" value={treeCount} onChange={(e) => setTreeCount(e.target.value)} required className="mt-1 w-full rounded-lg border border-[#d8e2da] px-3 py-2 text-sm" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold text-[#526158]">Nhóm giống</label>
               <select value={variety} onChange={(e) => setVariety(e.target.value)} className="mt-1 w-full rounded-lg border border-[#d8e2da] px-3 py-2 text-sm">
@@ -127,7 +127,7 @@ export default function FarmsPage() {
               <input type="number" min="1" max="100" value={ageYears} onChange={(e) => setAgeYears(e.target.value)} required className="mt-1 w-full rounded-lg border border-[#d8e2da] px-3 py-2 text-sm" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold text-[#526158]">Vĩ độ (Lat)</label>
               <input value={latitude} onChange={(e) => setLatitude(e.target.value)} className="mt-1 w-full rounded-lg border border-[#d8e2da] px-3 py-2 text-sm" />
@@ -177,7 +177,7 @@ export default function FarmsPage() {
                       {farm.status}
                     </span>
                   </div>
-                  <div className="mt-2 grid gap-2 text-xs text-[#526158] sm:grid-cols-4">
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-[#526158] sm:grid-cols-4">
                     <div>Khu vực: {farm.commune}, {farm.province}</div>
                     <div>Diện tích: <strong className="text-[#1b241f]">{farm.areaHa} ha</strong></div>
                     <div>Mật độ quan sát: <strong className="text-[#1b241f]">{(farm.treeCount / farm.areaHa).toFixed(1)} cây/ha</strong></div>

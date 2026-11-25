@@ -351,3 +351,122 @@ def test_carbon_investment_proposal_fraud_protection():
     )
     assert clean.status_code == 200
     assert clean.json()["decisionRecommendation"] == "LOW_RISK_CONTINUE_DUE_DILIGENCE"
+
+
+
+def test_rag_vietnamese_nfd_and_no_accents_credit_query():
+    import unicodedata
+    # Must retrieve R12 cleanly for NFC, NFD (Vietnamese IME decomposed), and unaccented input
+    nfc_hits = retrieve_relevant_sources("tín chỉ là gì")
+    nfd_hits = retrieve_relevant_sources(unicodedata.normalize("NFD", "tín chỉ là gì"))
+    no_acc_hits = retrieve_relevant_sources("tin chi la gi")
+    assert any(h["sourceCode"] == "R12" for h in nfc_hits)
+    assert any(h["sourceCode"] == "R12" for h in nfd_hits)
+    assert any(h["sourceCode"] == "R12" for h in no_acc_hits)
+
+    # Also test via internal assistant endpoint
+    r = client.post("/internal/v1/assistant/query", json={"role": "Farmer", "question": unicodedata.normalize("NFD", "tín chỉ là gì")})
+    assert r.status_code == 200
+    assert r.json()["hasEnoughEvidence"] is True
+    assert len(r.json()["citations"]) >= 1
+
+
+def test_admin_multi_ai_provider_manager_and_openai_tool_calling(tmp_path, monkeypatch):
+    import app.services.ai_runtime_config as cfg_mod
+    from app.providers.external_providers import OpenAICompatibleProvider
+    from app.services.ai_runtime_config import UpdateAiProviderRequest, ai_runtime_config
+
+    monkeypatch.setattr(cfg_mod, "_RUNTIME_CONFIG_PATH", tmp_path / ".runtime_ai_config.json")
+    prev = ai_runtime_config.get_public_status()
+    try:
+        r_upd = client.post(
+            "/internal/v1/admin/ai-provider",
+            json={
+                "activeProvider": "openai",
+                "modelName": "gpt-4o-mini",
+                "baseUrl": "https://api.openai.com/v1",
+                "apiKey": "sk-secret-demo-9876",
+            },
+        )
+        assert r_upd.status_code == 200
+        st = r_upd.json()
+        assert st["activeProvider"] == "openai"
+        assert st["activeModelName"] == "gpt-4o-mini"
+        assert "sk-secret-demo-9876" not in str(st)  # NEVER leak raw secret key
+        openai_entry = next(p for p in st["providers"] if p["id"] == "openai")
+        assert openai_entry["hasApiKey"] is True and openai_entry["maskedApiKey"] == "sk-s...9876"
+
+        # Test OpenAICompatibleProvider tool calling loop with mocked httpx response
+        provider = OpenAICompatibleProvider(
+            provider_name="openai",
+            api_key="sk-mock",
+            model_name="gpt-4o-mini",
+            base_url="https://api.openai.com/v1",
+            max_retries=0,
+        )
+        t1_resp = MagicMock()
+        t1_resp.raise_for_status = lambda: None
+        t1_resp.json.return_value = {
+            "choices": [{
+                "message": {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [{
+                        "id": "call_1",
+                        "type": "function",
+                        "function": {"name": "calculate_financial_metrics", "arguments": '{"areaHa":1.0,"horizonYears":2,"annualCoconutYieldUnitsPerHa":10000,"coconutUnitPriceVnd":5000}'},
+                    }],
+                }
+            }]
+        }
+        t2_resp = MagicMock()
+        t2_resp.raise_for_status = lambda: None
+        t2_resp.json.return_value = {
+            "choices": [{"message": {"role": "assistant", "content": "[Ước tính] Tổng doanh thu 2 năm = 100,000,000 VND [GF1]."}}]
+        }
+        mock_http = MagicMock()
+        mock_http.__enter__.return_value.post.side_effect = [t1_resp, t2_resp]
+        with pytest.MonkeyPatch.context() as mp:
+            import app.providers.external_providers as ext_mod
+            mp.setattr(ext_mod.httpx, "Client", lambda **kwargs: mock_http)
+            ans, traces, is_fb = provider.run_assistant_with_tools(
+                role="Farmer",
+                question="Tính doanh thu 2 năm",
+                intent="financial_calculation",
+                language="vi",
+                session_history=[],
+                context_data={"areaHa": 1.0},
+                retrieved_sources=[],
+            )
+            assert is_fb is False
+            assert len(traces) == 1 and traces[0]["tool"] == "calculate_financial_metrics"
+            assert "100,000,000" in ans
+    finally:
+        ai_runtime_config.update(
+            UpdateAiProviderRequest(
+                activeProvider=prev["activeProvider"],
+                modelName=prev["activeModelName"],
+                clearApiKey=True,
+            ),
+            persist=False,
+        )
+
+
+def test_five_assistant_capabilities_intents_and_actions():
+    pay_resp = client.post("/api/ai/assistant", json={"question": "Hôm nay chi 3.5 triệu mua phân hữu cơ"})
+    assert pay_resp.status_code == 200
+    pb = pay_resp.json()
+    assert pb["intent"] == "payment_transaction_assist"
+    assert "Thanh toán" in pb["assistantCapability"]
+    assert pb["transactionProposal"]["amountVnd"] == 3_500_000.0
+    assert len(pb["suggestedActions"]) >= 1
+
+    sales_resp = client.post("/api/ai/assistant", json={"question": "Soạn thư phản hồi bán hàng và RFQ cho doanh nghiệp buyer"})
+    assert sales_resp.status_code == 200
+    assert sales_resp.json()["intent"] == "sales_rfq_assist"
+    assert "Bán hàng" in sales_resp.json()["assistantCapability"]
+
+    pers_resp = client.post("/api/ai/assistant", json={"question": "Lập checklist việc cần làm cá nhân và hồ sơ còn thiếu"})
+    assert pers_resp.status_code == 200
+    assert pers_resp.json()["intent"] == "personal_workflow_assist"
+    assert "Cá nhân" in pers_resp.json()["assistantCapability"]
