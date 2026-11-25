@@ -42,16 +42,21 @@ describe("CocoCarbon Web Scientific & Security Guardrails", () => {
     }
   });
 
-    it("documents page renders anti-fraud indicator and 3 separated scores; financial assistant uses Python engine endpoints", () => {
+    it("documents page renders anti-fraud indicator, proposal check, and 3 separated scores; financial assistant uses Python engine endpoints and NL transaction parser", () => {
       const docsPage = fs.readFileSync(path.resolve(__dirname, "../src/app/documents/page.tsx"), "utf-8");
       const farmDetailPage = fs.readFileSync(path.resolve(__dirname, "../src/app/farms/[id]/page.tsx"), "utf-8");
       const finPage = fs.readFileSync(path.resolve(__dirname, "../src/app/financial-assistant/page.tsx"), "utf-8");
+      const loginPage = fs.readFileSync(path.resolve(__dirname, "../src/app/login/page.tsx"), "utf-8");
       expect(docsPage).toContain("AI Anti-Fraud Indicator");
       expect(docsPage).toContain("/api/carbon/integrity-check");
+      expect(docsPage).toContain("/api/carbon/proposal-check");
       expect(farmDetailPage).toContain("/finance-ledger");
       expect(finPage).toContain("/api/ai/assistant");
       expect(finPage).toContain("/api/financial/calculate");
       expect(finPage).toContain("/api/financial/scenarios");
       expect(finPage).toContain("/api/financial/reports");
+      expect(finPage).toContain("/api/financial/parse-transaction");
+      expect(finPage).toContain("Promise.allSettled");
+      expect(loginPage).toContain("signInWithEmailPasswordFirebase");
     });
   });

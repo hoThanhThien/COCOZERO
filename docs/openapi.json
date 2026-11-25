@@ -937,7 +937,57 @@
         }
       }
     },
+    "/api/financial/parse-transaction": {
+      "post": {
+        "tags": [
+          "FinancialAndIntegrity"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { }
+            },
+            "text/json": {
+              "schema": { }
+            },
+            "application/*+json": {
+              "schema": { }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/carbon/integrity-check": {
+      "post": {
+        "tags": [
+          "FinancialAndIntegrity"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { }
+            },
+            "text/json": {
+              "schema": { }
+            },
+            "application/*+json": {
+              "schema": { }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/carbon/proposal-check": {
       "post": {
         "tags": [
           "FinancialAndIntegrity"

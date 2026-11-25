@@ -15,17 +15,23 @@ from app.schemas_financial import (
     FinancialCalculationRequest,
     FinancialCalculationResult,
     FinancialReportResponse,
+    NaturalLanguageTransactionProposal,
+    NaturalLanguageTransactionRequest,
     ScenarioSimulationRequest,
     ScenarioSimulationResult,
 )
 from app.services.carbon_integrity import (
     CarbonIntegrityCheckRequest,
     CarbonIntegrityCheckResponse,
+    ProposalFraudCheckRequest,
+    ProposalFraudCheckResponse,
     evaluate_carbon_integrity,
+    evaluate_investment_proposal,
 )
 from app.services.context_manager import session_context_store
 from app.services.financial_engine import (
     build_deterministic_financial_report,
+    parse_natural_language_transaction,
     run_financial_calculation,
     run_scenario_simulation,
 )
@@ -269,6 +275,15 @@ def financial_reports(
     )
 
 
+@router.post("/api/financial/parse-transaction", response_model=NaturalLanguageTransactionProposal)
+def financial_parse_transaction(
+    req: NaturalLanguageTransactionRequest,
+    x_internal_api_key: str | None = Header(default=None),
+) -> NaturalLanguageTransactionProposal:
+    verify_key_if_configured(x_internal_api_key)
+    return parse_natural_language_transaction(req.text)
+
+
 @router.post("/api/carbon/integrity-check", response_model=CarbonIntegrityCheckResponse)
 def carbon_integrity_check(
     req: CarbonIntegrityCheckRequest,
@@ -276,3 +291,12 @@ def carbon_integrity_check(
 ) -> CarbonIntegrityCheckResponse:
     verify_key_if_configured(x_internal_api_key)
     return evaluate_carbon_integrity(req)
+
+
+@router.post("/api/carbon/proposal-check", response_model=ProposalFraudCheckResponse)
+def carbon_proposal_check(
+    req: ProposalFraudCheckRequest,
+    x_internal_api_key: str | None = Header(default=None),
+) -> ProposalFraudCheckResponse:
+    verify_key_if_configured(x_internal_api_key)
+    return evaluate_investment_proposal(req)

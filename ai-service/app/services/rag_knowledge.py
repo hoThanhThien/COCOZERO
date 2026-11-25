@@ -19,9 +19,37 @@ _OUT_OF_SCOPE_PATTERNS = (
 )
 
 
-def load_curated_sources() -> list[dict[str, Any]]:
+_REQUIRED_SOURCE_KEYS = ("sourceCode", "category", "title", "url", "metadata", "keywords", "excerpt")
+
+
+def validate_curated_sources() -> list[dict[str, Any]]:
+    """Load and validate curated_sources.json strictly so startup/CI fails fast on malformed RAG data."""
     with open(_SOURCES_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+
+    if not isinstance(data, list) or len(data) == 0:
+        raise ValueError("curated_sources.json must be a non-empty JSON array.")
+
+    seen_codes: set[str] = set()
+    for idx, src in enumerate(data):
+        if not isinstance(src, dict):
+            raise ValueError(f"curated_sources[{idx}] must be a JSON object.")
+        for key in _REQUIRED_SOURCE_KEYS:
+            if key not in src:
+                raise ValueError(f"curated_sources[{idx}] missing required key '{key}'.")
+        if not isinstance(src["metadata"], dict):
+            raise ValueError(f"curated_sources[{idx}] ('{src.get('sourceCode')}') metadata must be an object.")
+        if not isinstance(src["keywords"], list):
+            raise ValueError(f"curated_sources[{idx}] ('{src.get('sourceCode')}') keywords must be a list.")
+        code = str(src["sourceCode"]).strip()
+        if not code or code in seen_codes:
+            raise ValueError(f"Duplicate or empty sourceCode '{code}' in curated_sources[{idx}].")
+        seen_codes.add(code)
+    return data
+
+
+def load_curated_sources() -> list[dict[str, Any]]:
+    return validate_curated_sources()
 
 
 def retrieve_relevant_sources(

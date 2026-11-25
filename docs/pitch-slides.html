@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>CocoCarbon AI - Pitch Deck (MoMo Tech Contest 2026)</title>
+  <style>
+    @page { size: 1280px 720px; margin: 0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: #1b241f; background: #ffffff; }
+    .slide {
+      width: 1280px; height: 720px; padding: 48px 58px;
+      page-break-after: always; display: flex; flex-direction: column; justify-content: space-between;
+      border-bottom: 1px solid #e2eae3; background: linear-gradient(135deg, #f8fbf8 0%, #ffffff 65%);
+    }
+    .slide:last-child { page-break-after: auto; }
+    .cover { background: linear-gradient(135deg, #123c29 0%, #15803d 100%); color: #ffffff; }
+    .tag { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 6px 14px; border-radius: 999px; background: #e8f5ec; color: #123c29; }
+    .cover .tag { background: rgba(255,255,255,0.16); color: #ffffff; }
+    h1 { font-size: 46px; margin: 18px 0 12px; line-height: 1.15; }
+    h2 { font-size: 32px; color: #123c29; margin: 10px 0 18px; border-bottom: 2px solid #cfe0d3; padding-bottom: 10px; }
+    .subtitle { font-size: 22px; opacity: 0.92; line-height: 1.45; max-width: 960px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .card { border: 1.5px solid #d8e2da; border-radius: 16px; padding: 22px 24px; background: #ffffff; }
+    .card h3 { margin: 0 0 10px; font-size: 20px; color: #123c29; }
+    .alert { border-color: #f59e0b; background: #fffbeb; }
+    .danger { border-color: #ef4444; background: #fef2f2; }
+    ul { margin: 8px 0 0; padding-left: 22px; font-size: 18px; line-height: 1.55; }
+    li { margin-bottom: 8px; }
+    p { font-size: 18px; line-height: 1.5; margin: 6px 0; }
+    .footer { display: flex; justify-content: space-between; font-size: 14px; color: #526158; border-top: 1px solid #e2eae3; padding-top: 12px; }
+    .cover .footer { border-top-color: rgba(255,255,255,0.25); color: #d8efe0; }
+    code { background: #eef3ef; padding: 2px 6px; border-radius: 5px; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <section class="slide cover">
+    <div>
+      <span class="tag">MoMo Tech Contest 2026 • Imagine the Future Workspace</span>
+      <h1>CocoCarbon AI</h1>
+      <p class="subtitle"><strong>Từ vườn dừa đến giá trị xanh</strong> — Trợ lý Tài chính AI cho Nông hộ &amp; HTX kết hợp Lá chắn Chống lừa đảo Đầu tư Carbon vùng Bến Tre – Tỉnh Vĩnh Long.</p>
+      <p class="subtitle" style="margin-top:24px;font-size:18px;">Chủ đề tham dự: <strong>1. Trợ lý AI</strong> (Quản lý tài chính nông nghiệp xanh) • <strong>2. Chống lừa đảo</strong> (Phát hiện greenwashing &amp; bẫy hợp đồng carbon trước khi mất tiền)</p>
+    </div>
+    <div class="footer"><span>Human Centered • AI Powered • Science First</span><span>Slide 1 / 10</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <span class="tag">Bài toán thực tế</span>
+      <h2>Hai rủi ro kép của Nông hộ trồng dừa trước "cơn sốt" tín chỉ carbon</h2>
+      <div class="grid2">
+        <div class="card danger">
+          <h3>1. Nguy cơ lừa đảo &amp; Greenwashing trước khi ký</h3>
+          <ul>
+            <li>Môi giới tự xưng cam kết doanh thu carbon cố định, thổi phồng trữ lượng thành <code>tCO2/ha/năm</code> hoặc yêu cầu đóng phí kích hoạt/đặt cọc trước.</li>
+            <li>Nông hộ thiếu công cụ đối chiếu khoa học và kiểm tra chéo tuyên bố hợp đồng trước khi chuyển tiền.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>2. Khoảng trống quản lý tài chính vườn dừa</h3>
+          <ul>
+            <li>Khó theo dõi sổ thu chi chăm sóc, phân bón, nhân công, MRV vs thu từ dừa &amp; phụ phẩm (gáo, xơ, mụn) theo tháng/quý/năm.</li>
+            <li>Thiếu phép tính ROI, NPV, điểm hòa vốn để biết vườn có tự chủ lãi nền nông sản hay đang phụ thuộc kỳ vọng carbon ảo.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>CocoCarbon AI • MoMo Tech Contest 2026</span><span>Slide 2 / 10</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <span class="tag">Câu chuyện sản phẩm</span>
+      <h2>Bảo vệ nông hộ trước khi quyết định &amp; Đồng hành quản lý dòng tiền</h2>
+      <div class="grid3">
+        <div class="card">
+          <h3>Bước 1: Chặn lừa đảo</h3>
+          <p>Nông hộ nhận đề nghị tham gia dự án carbon → Dán nội dung vào <strong>Kiểm tra Đề nghị Đầu tư</strong> → Cảnh báo đỏ <code>DO_NOT_SIGN_OR_PAY</code> nếu có phí trước hoặc cam kết lợi nhuận giả.</p>
+        </div>
+        <div class="card">
+          <h3>Bước 2: Ghi sổ tự nhiên</h3>
+          <p>Gõ câu tự nhiên (VD: <em>"Chi 3.5 triệu mua phân hữu cơ"</em>) → AI bóc tách hạng mục, hiển thị xem trước và <strong>chỉ lưu sau khi người dùng xác nhận</strong>.</p>
+        </div>
+        <div class="card">
+          <h3>Bước 3: Tái tính ROI thật</h3>
+          <p>Python Engine gộp thu chi thực tế (<code>FarmFinancialEntries</code>) với kế hoạch, cảnh báo vượt ngân sách và mô phỏng kịch bản trước khi kết nối HTX/RFQ.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>CocoCarbon AI • MoMo Tech Contest 2026</span><span>Slide 3 / 10</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <span class="tag">Chủ đề 1: Trợ lý AI</span>
+      <h2>AI Financial Assistant: Gemini Tool Calling + Python Engine + Sổ Thực tế</h2>
+      <div class="grid2">
+        <div class="card">
+          <h3>Không để LLM tự bịa hoặc tính nhẩm</h3>
+          <ul>
+            <li><code>GeminiInteractionsProvider</code> (<code>gemini-4-hydrogen</code>, <code>store=False</code>) phân loại intent song ngữ VI/EN và gọi hàm Python deterministic.</li>
+            <li>Phân tách 4 nhãn minh bạch: <code>ACTUAL_DATA</code>, <code>USER_ASSUMPTION</code>, <code>MODEL_ESTIMATE</code>, <code>HYPOTHETICAL_SCENARIO</code>.</li>
+            <li>Tự động hạ cấp an toàn về <code>HeuristicFallbackProvider</code> khi ngoại tuyến.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Trợ lý quản lý thu chi &amp; Báo cáo 9 phần</h3>
+          <ul>
+            <li>Tổng hợp sổ thực tế theo <strong>Tháng / Quý / Năm</strong> ngay tại C# &amp; Python Engine.</li>
+            <li>Đối chiếu <strong>Chi thực tế vs Ngân sách Năm 1</strong> → Tính lại <strong>ROI/NPV hiệu chỉnh</strong> và phát cờ <code>OVER_BUDGET_OPEX</code>, <code>ACTUAL_NEGATIVE_CASHFLOW</code>.</li>
+            <li>Xuất đầy đủ kịch bản nhạy cảm giá/sản lượng &amp; báo cáo 9 mục.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>CocoCarbon AI • MoMo Tech Contest 2026</span><span>Slide 4 / 10</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <span class="tag">Chủ đề 2: Chống lừa đảo</span>
+      <h2>Proposal Fraud Guard &amp; Tách biệt 3 Chỉ số Toàn vẹn Carbon</h2>
+      <div class="grid2">
+        <div class="card danger">
+          <h3>Kiểm tra Đề nghị Đầu tư (<code>/api/carbon/proposal-check</code>)</h3>
+          <ul>
+            <li>Phát hiện đòi phí đăng ký/đặt cọc trước (<code>FRAUD_UPFRONT_FEE_DEMAND</code>), cam kết doanh thu chắc chắn, áp lực ký gấp, thiếu mã Registry/VVB.</li>
+            <li>Trả trích dẫn bằng chứng + danh sách kiểm tra trước khi ký hợp đồng hay chuyển tiền.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>3 Điểm Tách Biệt + AI PDF Auditor (<code>/documents</code>)</h3>
+          <ul>
+            <li><strong>Project Readiness Score</strong> (0–100) vs <strong>Document Completeness</strong> vs <strong>Carbon Integrity Risk</strong>.</li>
+            <li><strong>Thiếu hồ sơ KHÔNG bị quy kết gian lận</strong> (<code>IncompleteDocuments_NotFraud</code>).</li>
+            <li>Bắt trùng tệp SHA-256, chồng lấn GPS (&le; 50m), lệch diện tích/số cây và chuyển Reviewer duyệt.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>CocoCarbon AI • MoMo Tech Contest 2026</span><span>Slide 5 / 10</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <span class="tag">Science First • Curated RAG</span>
+      <h2>Ranh giới Khoa học Carbon &amp; Kho RAG 10 Nguồn Kiểm chứng</h2>
+      <div class="grid2">
+        <div class="card alert">
+          <h3>Quy tắc khoa học bất biến</h3>
+          <ul>
+            <li>Calculator C# dùng chính xác 4 hệ số CTU 2015 <code>[R1]</code>: <code>24.5180</code>, <code>75.2436</code>, <code>20.4583</code>, <code>69.9189</code> tCO2/ha.</li>
+            <li>Từ chối nội suy tuổi khác 4 hoặc 10 (<code>HTTP 422</code>); không gọi trữ lượng là tín chỉ phát hành hay doanh thu chắc chắn.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>RAG 5 nhóm &amp; Bảo vệ dữ liệu khởi động</h3>
+          <ul>
+            <li>10 nguồn thực tế: <code>[R1–R12]</code> (CTU 2015, Khảo sát 2024 160–240 cây/ha, IPCC 2006/2019, Verra VM0042, Gold Standard SOC, Nghị định 29/2026), <code>[AGRI1]</code>, <code>[GF1]</code>.</li>
+            <li>Kiểm tra hợp lệ schema JSON <code>curated_sources.json</code> ngay khi FastAPI khởi động &amp; trong CI.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>CocoCarbon AI • MoMo Tech Contest 2026</span><span>Slide 6 / 10</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <span class="tag">Kiến trúc &amp; Bảo mật Nền tảng</span>
+      <h2>C# ASP.NET Core 8 (Core Truth) + Python FastAPI (Internal) + Next.js / Android</h2>
+      <div class="grid2">
+        <div class="card">
+          <h3>Luồng dịch vụ &amp; Bảo mật Sản phẩm</h3>
+          <ul>
+            <li>Web Next.js 15 &amp; Android Kotlin dùng chung <strong>Firebase Authentication</strong> (Google + Email/Password Production).</li>
+            <li>Build arguments <code>NEXT_PUBLIC_FIREBASE_*</code> truyền thẳng vào Docker Web build; <code>ai-service</code> &amp; <code>postgres</code> ẩn trong mạng nội bộ.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Kiểm soát truy cập nghiêm ngặt</h3>
+          <ul>
+            <li>C# xác minh token server-side (<code>VerifyIdTokenAsync</code>), kiểm tra RBAC &amp; quyền sở hữu chủ vườn (chống IDOR), chống prompt injection bằng thẻ dữ liệu không tin cậy.</li>
+            <li>HMAC Signed URL bảo vệ file riêng tư, rate limit 120 req/phút, security headers OWASP.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>CocoCarbon AI • MoMo Tech Contest 2026</span><span>Slide 7 / 10</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <span class="tag">Chất lượng &amp; Kiểm thử</span>
+      <h2>Kiểm thử tự động đa tầng &amp; Luồng CI (.github/workflows/ci.yml)</h2>
+      <div class="grid3">
+        <div class="card">
+          <h3>Python AI &amp; Financial</h3>
+          <p><code>pytest</code> kiểm thử Financial Engine (ROI, NPV, Over-budget alert, NL Ledger parser), RAG JSON schema, Gemini Tool Calling + fallback, Integrity 3-score &amp; Proposal Fraud.</p>
+        </div>
+        <div class="card">
+          <h3>C# Backend &amp; API</h3>
+          <p>xUnit Unit Tests cho CTU 2015 Calculator + Integration Tests (<code>WebApplicationFactory</code>) cho Auth 401/403, IDOR, Upload magic bytes, Finance Aggregations &amp; AI Proxy.</p>
+        </div>
+        <div class="card">
+          <h3>Web &amp; Smoke E2E</h3>
+          <p>Vitest guardrails + Next.js Production Build + kịch bản <code>smoke_test_local.ps1</code> gọi API thật qua HTTP giữa Web, C# API và Python AI.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>CocoCarbon AI • MoMo Tech Contest 2026</span><span>Slide 8 / 10</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <span class="tag">Tác động &amp; Khả thi</span>
+      <h2>Giá trị thực tiễn cho nông hộ &amp; Hợp tác xã vùng dừa Bến Tre – Vĩnh Long</h2>
+      <div class="card">
+        <ul>
+          <li><strong>Chủ động phòng vệ tài chính số</strong>: Giúp nông hộ kiểm tra ngay đề nghị đầu tư carbon trước khi chuyển tiền cọc hoặc ký hợp đồng bất lợi.</li>
+          <li><strong>Nâng hiệu quả kinh tế tuần hoàn</strong>: Khuyến khích hạch toán nguồn thu thực tế từ dừa và phụ phẩm (gáo, xơ, mụn dừa) thay vì phụ thuộc kỳ vọng tín chỉ chưa phát hành.</li>
+          <li><strong>Gom vùng nguyên liệu qua HTX</strong>: Chia sẻ chi phí đo đạc/MRV khi liên kết đủ quy mô và sẵn sàng kết nối doanh nghiệp qua Project Directory / RFQ.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer"><span>CocoCarbon AI • MoMo Tech Contest 2026</span><span>Slide 9 / 10</span></div>
+  </section>
+
+  <section class="slide">
+    <div>
+      <span class="tag">Lộ trình phát triển</span>
+      <h2>Hiện tại (MVP hoàn chỉnh) → Mở rộng thực địa ĐBSCL</h2>
+      <div class="grid2">
+        <div class="card">
+          <h3>Đã triển khai trong COCOZERO</h3>
+          <ul>
+            <li>C# Core API + PostgreSQL/PostGIS + Android Kotlin app + Next.js Web.</li>
+            <li>AI Financial Assistant + Real Ledger Re-baselining + NL Transaction Entry.</li>
+            <li>Proposal Fraud Shield + 3-Score Carbon Integrity + 5-Category RAG.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Hướng phát triển tiếp theo</h3>
+          <ul>
+            <li>OCR tự động hóa đơn vật tư nông nghiệp &amp; đồng bộ sổ thu chi từ app Android.</li>
+            <li>Hiệu chuẩn mô hình Tier 2/3 vùng ĐBSCL với viện/trường và kết nối Registry theo lộ trình Nghị định 29/2026/NĐ-CP.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>CocoCarbon AI • Cảm ơn Ban Giám Khảo MoMo Tech Contest 2026</span><span>Slide 10 / 10</span></div>
+  </section>
+</body>
+</html>

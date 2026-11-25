@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck, Sprout, UserCheck } from "lucide-react";
 import { apiFetch, setStoredSession } from "@/lib/api";
-import { isFirebaseWebConfigured, signInWithGoogleFirebase } from "@/lib/firebase";
+import { isFirebaseWebConfigured, signInWithEmailPasswordFirebase, signInWithGoogleFirebase } from "@/lib/firebase";
 import type { UserProfileDto } from "@/lib/types";
 
 const DEMO_ROLES = [
@@ -20,6 +20,8 @@ const DEMO_ROLES = [
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const firebaseReady = isFirebaseWebConfigured();
   const showDemo = process.env.NEXT_PUBLIC_SHOW_DEMO_MODE !== "false";
@@ -34,6 +36,23 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Đăng nhập Google thất bại.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleEmailLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const auth = await signInWithEmailPasswordFirebase(email, password);
+      setStoredSession(auth.idToken, "firebase");
+      await apiFetch<UserProfileDto>("/api/v1/me");
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Đăng nhập Email/Mật khẩu Firebase thất bại.");
     } finally {
       setLoading(false);
     }
@@ -93,9 +112,37 @@ export default function LoginPage() {
           </button>
           {!firebaseReady && (
             <p className="mt-2 text-xs text-[#526158]">
-              Điền biến môi trường Firebase Web (`NEXT_PUBLIC_FIREBASE_API_KEY`, `AUTH_DOMAIN`, `PROJECT_ID`, `APP_ID`) để bật Google Sign-In thật.
+              Điền biến môi trường Firebase Web (`NEXT_PUBLIC_FIREBASE_API_KEY`, `AUTH_DOMAIN`, `PROJECT_ID`, `APP_ID`) vào build args để bật đăng nhập Firebase thật.
             </p>
           )}
+          <form onSubmit={handleEmailLogin} className="mt-4 border-t border-[#e2eae3] pt-3 space-y-2">
+            <p className="text-xs font-semibold text-[#123c29]">Hoặc đăng nhập Email / Mật khẩu (Tài khoản dùng thử Firebase Production)</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email tài khoản Firebase"
+                disabled={loading || !firebaseReady}
+                className="rounded-lg border border-[#d8e2da] bg-white px-3 py-2 text-xs"
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mật khẩu"
+                disabled={loading || !firebaseReady}
+                className="rounded-lg border border-[#d8e2da] bg-white px-3 py-2 text-xs"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading || !firebaseReady || !email.trim() || !password}
+              className="rounded-lg border border-[#123c29] px-3.5 py-2 text-xs font-semibold text-[#123c29] hover:bg-[#e8f5ec] disabled:opacity-50"
+            >
+              Đăng nhập Email Firebase
+            </button>
+          </form>
         </div>
 
         {showDemo && (

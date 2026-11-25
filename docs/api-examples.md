@@ -60,9 +60,11 @@ Các endpoint này được C# ASP.NET Core API bảo vệ bằng `[Authorize]` 
     -d '{"role":"Farmer","question":"Tính ROI và dòng tiền 5 năm cho vườn dừa 1.5 ha","financialInput":{"farmName":"Vườn Dừa Bến Tre","investment":{"areaHa":1.5,"landPrepAndSeedlingsVnd":12000000,"irrigationAndEquipmentVnd":18000000,"mrvBaselineAndAuditBudgetVnd":5000000,"annualCareAndFertilizerPerHaVnd":9000000,"annualLaborAndHarvestPerHaVnd":7000000,"annualMonitoringAndAdminVnd":2000000,"horizonYears":5},"revenue":{"areaHa":1.5,"annualCoconutYieldUnitsPerHa":9000,"coconutUnitPriceVnd":6500,"annualByProductRevenuePerHaVnd":2500000},"discountRate":0.08}}'
   ```
 - **Financial Engine Endpoints**:
-  - `POST /api/financial/calculate?farmId=<optional>` -> trả `costBreakdown`, `revenueBreakdown`, `profitAndRoi` (`roiPercentAgriOnly`, `npvAgriOnlyVnd`, `paybackPeriodYears`, `benefitCostRatio`), `cashFlowSchedule[]`, `actualVsEstimateNotes[]`.
+  - `POST /api/financial/calculate?farmId=<optional>` -> trả `costBreakdown`, `revenueBreakdown`, `profitAndRoi`, `cashFlowSchedule[]`, `actualAdjustedCashFlowSchedule[]`, `actualVsBudget` (tính lại ROI/NPV theo số liệu thực tế), `actualPeriodAggregations` (`byMonth`, `byQuarter`, `byYear`), `financialAlerts[]`.
+  - `POST /api/financial/parse-transaction` -> phân tích câu mô tả tự nhiên VI/EN thành đề xuất ghi Sổ Thu Chi Vườn (`requiresUserConfirmation: true`).
   - `POST /api/financial/scenarios` -> so sánh kịch bản cơ sở với biến động giá/sản lượng/chi phí và kịch bản carbon giả định (`HYPOTHETICAL_SCENARIO`).
   - `POST /api/financial/analyze?farmId=<optional>` -> kết hợp tính toán Python, mô phỏng kịch bản và phân tích AI kèm nguồn RAG.
   - `POST /api/financial/reports?farmId=<optional>` -> báo cáo 9 phần (`executiveSummary`, `investmentOverview`, `revenueAnalysis`, `costAnalysis`, `roiAnalysis`, `cashFlowAnalysis`, `riskAssessment`, `recommendations`, `dataSourcesAndAssumptions`).
-- **Carbon Integrity 3-Score Check (`POST /api/carbon/integrity-check`)**:
-  Tách biệt rõ `projectReadinessScore`, `documentCompletenessScore` và `carbonIntegrityRiskScore` + `explainableAlerts[]` (`IncompleteDocuments_NotFraud` khi chỉ thiếu hồ sơ mà không có dấu hiệu gian lận).
+- **Carbon Integrity & Proposal Fraud Guard**:
+  - `POST /api/carbon/integrity-check` -> tách biệt rõ `projectReadinessScore`, `documentCompletenessScore` và `carbonIntegrityRiskScore` + `explainableAlerts[]` (`IncompleteDocuments_NotFraud` khi chỉ thiếu hồ sơ mà không có dấu hiệu gian lận).
+  - `POST /api/carbon/proposal-check` -> kiểm tra đề nghị đầu tư carbon trước khi ký/chuyển tiền (`DO_NOT_SIGN_OR_PAY`, phát hiện yêu cầu đóng phí trước, cam kết lợi nhuận chắc chắn, `tCO2/ha/năm` sai quy chuẩn, áp lực ký gấp).

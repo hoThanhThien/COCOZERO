@@ -42,6 +42,53 @@ class RevenueInput(BaseModel):
     carbonRealizationProbability: float = Field(ge=0.0, le=1.0, default=0.0)
 
 
+class ActualLedgerEntryInput(BaseModel):
+    entryType: str
+    category: str = ""
+    amountVnd: float = Field(ge=0)
+    entryDate: str = ""
+
+
+class PeriodLedgerSummary(BaseModel):
+    period: str
+    expenseVnd: float
+    revenueVnd: float
+    netCashflowVnd: float
+    entryCount: int
+
+
+class PeriodAggregations(BaseModel):
+    byMonth: list[PeriodLedgerSummary] = Field(default_factory=list)
+    byQuarter: list[PeriodLedgerSummary] = Field(default_factory=list)
+    byYear: list[PeriodLedgerSummary] = Field(default_factory=list)
+
+
+class FinancialAlertItem(BaseModel):
+    code: str
+    severity: Literal["info", "warning", "high"]
+    title: str
+    message: str
+    recommendedAction: str
+
+
+class ActualVsBudgetSummary(BaseModel):
+    hasActualData: bool
+    actualRecordedExpenseVnd: float
+    actualRecordedRevenueVnd: float
+    actualNetCashflowVnd: float
+    plannedYear1BudgetVnd: float
+    expenseVarianceVnd: float
+    expenseUtilizationPercent: float
+    isOverBudget: bool
+    adjustedTotalCostVnd: float
+    adjustedTotalAgriRevenueVnd: float
+    adjustedNetProfitAgriOnlyVnd: float
+    adjustedRoiPercentAgriOnly: float
+    adjustedPaybackPeriodYears: Optional[float] = None
+    adjustedNpvAgriOnlyVnd: float
+    comparisonSummary: str
+
+
 class FinancialCalculationRequest(BaseModel):
     farmName: str = "Vườn dừa CocoCarbon"
     investment: InvestmentCostInput
@@ -49,6 +96,7 @@ class FinancialCalculationRequest(BaseModel):
     discountRate: float = Field(ge=0.0, le=0.5, default=0.08)
     actualRecordedExpenseVnd: Optional[float] = Field(default=None, ge=0)
     actualRecordedRevenueVnd: Optional[float] = Field(default=None, ge=0)
+    actualEntries: list[ActualLedgerEntryInput] = Field(default_factory=list)
 
 
 class InvestmentCostBreakdown(BaseModel):
@@ -107,6 +155,10 @@ class FinancialCalculationResult(BaseModel):
     revenueBreakdown: RevenueBreakdown
     profitAndRoi: ProfitAndRoiMetrics
     cashFlowSchedule: list[CashFlowYearRow]
+    actualAdjustedCashFlowSchedule: list[CashFlowYearRow] = Field(default_factory=list)
+    actualVsBudget: Optional[ActualVsBudgetSummary] = None
+    actualPeriodAggregations: PeriodAggregations = Field(default_factory=PeriodAggregations)
+    financialAlerts: list[FinancialAlertItem] = Field(default_factory=list)
     breakEvenYearAgriOnly: Optional[int] = None
     actualVsEstimateNotes: list[str] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
@@ -115,6 +167,30 @@ class FinancialCalculationResult(BaseModel):
         "và giả định kịch bản được gắn nhãn rõ. Nếu không nhập đơn giá carbon giả định, kịch bản carbon bằng 0. "
         "Ước tính carbon CTU 2015 KHÔNG phải tín chỉ đã phát hành và KHÔNG phải doanh thu được bảo đảm."
     )
+
+
+class NaturalLanguageTransactionRequest(BaseModel):
+    text: str = Field(min_length=2)
+    farmId: Optional[str] = None
+
+
+class NaturalLanguageTransactionProposal(BaseModel):
+    suggestedEntryType: Literal[
+        "CareExpense",
+        "MrvPreparationExpense",
+        "CoconutHarvestRevenue",
+        "ByProductRevenue",
+        "GreenSupportGrantOrLoan",
+    ]
+    category: str
+    amountVnd: float
+    entryDateIso: str
+    notes: str
+    direction: Literal["expense", "revenue"]
+    confidence: float
+    requiresUserConfirmation: bool = True
+    clarificationNeeded: Optional[str] = None
+    explanation: str
 
 
 class ScenarioVariation(BaseModel):

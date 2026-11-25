@@ -86,6 +86,14 @@ try {
     if ($finCalc.cashFlowSchedule.Count -ne 6) { throw "Expected Year 0..5 (6 rows) cashFlowSchedule, got $($finCalc.cashFlowSchedule.Count)." }
     Write-Host "8. /api/financial/calculate OK (ROI=$($finCalc.profitAndRoi.roiPercentAgriOnly)%, NPV=$($finCalc.profitAndRoi.npvAgriOnlyVnd))"
 
+    $nlTx = Invoke-RestMethod "http://127.0.0.1:8080/api/financial/parse-transaction" -Method Post -Headers $authFarmerHeaders -Body '{"text":"Chi 3.5 trieu mua phan huu co"}'
+    if ($nlTx.suggestedEntryType -ne "CareExpense" -or $nlTx.amountVnd -ne 3500000) { throw "Unexpected NL parse output." }
+    Write-Host "8b. /api/financial/parse-transaction OK (type=$($nlTx.suggestedEntryType), amount=$($nlTx.amountVnd))"
+
+    $propCheck = Invoke-RestMethod "http://127.0.0.1:8080/api/carbon/proposal-check" -Method Post -Headers $authFarmerHeaders -Body '{"upfrontFeeRequestedVnd":5000000,"contractTermsText":"guaranteed revenue sign today"}'
+    if ($propCheck.decisionRecommendation -ne "DO_NOT_SIGN_OR_PAY") { throw "Expected DO_NOT_SIGN_OR_PAY recommendation." }
+    Write-Host "8c. /api/carbon/proposal-check OK (rec=$($propCheck.decisionRecommendation), score=$($propCheck.fraudRiskScore))"
+
     $scenJson = (@{ baseInput = $finInputObj; scenarios = @() }) | ConvertTo-Json -Depth 8
     $finScen = Invoke-RestMethod "http://127.0.0.1:8080/api/financial/scenarios" -Method Post -Headers $authFarmerHeaders -Body $scenJson
     if ($finScen.scenarios.Count -lt 1) { throw "Expected scenario simulation outputs." }

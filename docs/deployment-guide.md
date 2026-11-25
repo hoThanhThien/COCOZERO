@@ -3,8 +3,8 @@
 ## 1. Thứ tự triển khai khuyến nghị: Web trước → Android sau
 1. Provision VPS Ubuntu (2+ vCPU, 4GB RAM) + domain DNS trỏ về IP VPS.
 2. Cài Docker & Docker Compose; sao chép `.env.example` thành `.env` và điền toàn bộ giá trị thật (tuyệt đối không commit `.env`).
-3. Đặt Firebase Admin Service Account JSON ở `/run/secrets/firebase-service-account.json` (hoặc volume mount `ro`), đặt `FIREBASE_AUTH_DEV_ALLOW_MOCK=false`.
-4. Khởi chạy stack bằng Docker Compose:
+3. Đặt Firebase Admin Service Account JSON ở `/run/secrets/firebase-service-account.json` (hoặc volume mount `ro`), đặt `FIREBASE_AUTH_DEV_ALLOW_MOCK=false` và `NEXT_PUBLIC_SHOW_DEMO_MODE=false` cho bản Production. Điền đầy đủ `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` trong `.env` để `docker compose build web` đóng gói vào bundle Next.js.
+4. Khởi chạy stack bằng Docker Compose (truyền build args cho Web):
    ```bash
    docker compose up -d --build
    ```
@@ -13,7 +13,7 @@
 5. Bật HTTPS/TLS với Certbot (Let's Encrypt) hoặc Cloudflare Tunnel/Origin CA.
 6. Trong **Firebase Console**:
    - Thêm domain production vào **Authentication → Settings → Authorized domains**.
-   - Bật **Google Sign-In** provider.
+   - Bật **Google** và **Email/Password** providers (tạo sẵn 1–2 tài khoản Email/Password thử nghiệm cho Ban Giám Khảo).
    - Đăng ký Web OAuth Client & Android app (`com.cococarbon.app`) cùng Debug/Release SHA-1 & SHA-256 fingerprints.
    - Tải `google-services.json` đặt vào `android/app/google-services.json` (đã gitignore).
 

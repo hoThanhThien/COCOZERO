@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import json
 import uuid
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
@@ -20,15 +21,23 @@ from app.services.document_extractor import (
     inspect_document_bytes,
     run_consistency_and_duplicate_checks,
 )
-from app.services.rag_knowledge import retrieve_relevant_sources
+from app.services.rag_knowledge import retrieve_relevant_sources, validate_curated_sources
 from app.services.readiness_rubric import evaluate_project_readiness
 from app.routers.api_routes import router as api_router
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    validate_curated_sources()
+    yield
+
+
 app = FastAPI(
     title="CocoCarbon AI Service",
-    version="1.1.0",
+    version="1.2.0",
     docs_url="/api/docs",
     redoc_url=None,
+    lifespan=lifespan,
 )
 app.include_router(api_router)
 
@@ -50,12 +59,14 @@ def verify_internal_key(x_internal_api_key: str | None) -> None:
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def health() -> dict[str, object]:
+    sources = validate_curated_sources()
     return {
         "status": "healthy",
         "provider": settings.ai_provider,
         "model": settings.gemini_model,
         "promptVersion": settings.prompt_version,
+        "ragSourcesLoaded": len(sources),
     }
 
 

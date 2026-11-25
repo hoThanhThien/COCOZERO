@@ -72,7 +72,7 @@ Truy cập Web qua Nginx tại `http://localhost` và Swagger API tại `http://
   cd backend
   dotnet test CocoCarbon.sln
   ```
-- **Python AI Tests** (15 tests):
+- **Python AI Tests** (19 tests):
   ```bash
   cd ai-service
   uv run pytest -v
@@ -96,7 +96,7 @@ Truy cập Web qua Nginx tại `http://localhost` và Swagger API tại `http://
 - [Kiến trúc hệ thống & luồng bảo mật](docs/architecture.md)
 - [Mẫu API & Request/Response](docs/api-examples.md)
 - [Hướng dẫn triển khai Production & Firebase/Android](docs/deployment-guide.md)
-- [Hướng dẫn sử dụng 1 trang A4](docs/user-guide-1page.md)
-- [Dàn ý Slide (10 trang)](docs/pitch-slides-outline.md)
+- [Dàn ý Slide (10 trang)](docs/pitch-slides-outline.md) / [Slide PDF](docs/pitch-slides.pdf)
+- [Hướng dẫn sử dụng 1 trang A4](docs/user-guide-1page.md) / [PDF](docs/user-guide-1page.pdf)
 - [Kịch bản Video Demo (<= 3 phút)](docs/demo-video-script.md)
 - [Danh sách OSS, Tài sản & Công cụ AI](docs/oss-and-assets.md)

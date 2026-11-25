@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from typing import Any, Literal, Optional
 import uuid
 from pydantic import BaseModel, Field
@@ -233,4 +234,174 @@ def evaluate_carbon_integrity(
         integrityStatus=status,
         missingDocuments=missing_docs,
         explainableAlerts=alerts,
+    )
+
+
+
+class ProposalFraudCheckRequest(BaseModel):
+    proposerName: str = ""
+    farmName: str = ""
+    areaHa: Optional[float] = Field(default=None, gt=0)
+    treeCount: Optional[int] = Field(default=None, gt=0)
+    variety: Optional[str] = None
+    ageYears: Optional[int] = None
+    promisedAnnualCarbonRevenueVnd: float = Field(ge=0, default=0.0)
+    upfrontFeeRequestedVnd: float = Field(ge=0, default=0.0)
+    promisedCo2ClaimText: str = ""
+    contractTermsText: str = ""
+    knownRegistryId: str = ""
+
+
+class ProposalRedFlag(BaseModel):
+    code: str
+    severity: Literal["warning", "high"]
+    evidenceSnippet: str
+    explanation: str
+    referenceToVerify: str
+
+
+class ProposalFraudCheckResponse(BaseModel):
+    checkId: str
+    checkedAt: str
+    fraudRiskScore: float = Field(ge=0.0, le=100.0)
+    riskLevel: Literal["Low", "Medium", "High"]
+    decisionRecommendation: Literal[
+        "DO_NOT_SIGN_OR_PAY",
+        "HIGH_CAUTION_VERIFY_FIRST",
+        "LOW_RISK_CONTINUE_DUE_DILIGENCE",
+    ]
+    summaryAdvice: str
+    redFlags: list[ProposalRedFlag] = Field(default_factory=list)
+    referenceSourcesToVerify: list[str] = Field(default_factory=list)
+    preSignatureChecklist: list[str] = Field(default_factory=list)
+    disclaimer: str = (
+        "Công cụ kiểm tra dấu hiệu lừa đảo đầu tư carbon & greenwashing nhằm bảo vệ nông hộ trước khi ký hợp đồng/chuyển tiền; "
+        "không thay thế tư vấn pháp lý hay thẩm định VVB."
+    )
+
+
+def evaluate_investment_proposal(req: ProposalFraudCheckRequest) -> ProposalFraudCheckResponse:
+    """Protect farmers against suspicious carbon investment offers before signing or transferring funds."""
+    red_flags: list[ProposalRedFlag] = []
+    score = 0.0
+    combined_text = f"{req.promisedCo2ClaimText}\n{req.contractTermsText}".strip()
+
+    # 1. Upfront fee solicitation with guaranteed payout
+    if req.upfrontFeeRequestedVnd > 0 or re.search(
+        r"(ph[ií]\s*(?:đ[aă]ng\s*k[yý]|l[aậ]p\s*h[oồ]\s*s[oơ]|th[aẩ]m\s*[dđ][iị]nh|c[oọ]c)\s*(?:tr[uươ][oớ]c|ngay)|upfront\s*fee|advance\s*deposit)",
+        combined_text,
+        re.IGNORECASE,
+    ):
+        score += 40.0
+        snippet = (
+            f"Yêu cầu nộp trước {req.upfrontFeeRequestedVnd:,.0f} VND"
+            if req.upfrontFeeRequestedVnd > 0
+            else "Đề nghị đóng phí/đặt cọc trước khi phát hành tín chỉ"
+        )
+        red_flags.append(
+            ProposalRedFlag(
+                code="FRAUD_UPFRONT_FEE_DEMAND",
+                severity="high",
+                evidenceSnippet=snippet,
+                explanation="Đòi nông hộ chuyển tiền/nộp phí trước để 'kích hoạt hợp đồng tín chỉ carbon' là dấu hiệu lừa đảo phổ biến trước khi mất tiền.",
+                referenceToVerify="[GF1] / [R12] Nghị định 29/2026/NĐ-CP",
+            )
+        )
+
+    # 2. Guaranteed carbon income / fixed return claim
+    rev_match = re.search(
+        r"(cam\s*k[eế]t\s*(?:l[oợ]i\s*nhu[aậ]n|thu\s*nh[aậ]p)|doanh\s*thu\s*ch[aắ]c\s*ch[aắ]n|b[aả]o\s*[dđ][aả]m\s*(?:mua\s*l[aạ]i|t[ií]n\s*ch[iỉ])|thu\s*nh[aậ]p\s*c[oố]\s*[dđ][iị]nh|guaranteed\s*(?:return|revenue))",
+        combined_text,
+        re.IGNORECASE,
+    )
+    if rev_match or req.promisedAnnualCarbonRevenueVnd >= 50_000_000 * max(1.0, req.areaHa or 1.0):
+        score += 35.0
+        snippet = rev_match.group(0) if rev_match else f"Hứa hẹn thu carbon {req.promisedAnnualCarbonRevenueVnd:,.0f} VND/năm"
+        red_flags.append(
+            ProposalRedFlag(
+                code="FRAUD_GUARANTEED_CARBON_PROFIT",
+                severity="high",
+                evidenceSnippet=snippet,
+                explanation="Không đơn vị nào được phép cam kết chắc chắn doanh thu bán tín chỉ carbon khi dự án chưa qua baseline, MRV và thẩm định VVB độc lập.",
+                referenceToVerify="[R1] CTU 2015 & [R5] Verra VM0042 v2.2",
+            )
+        )
+
+    # 3. Scientific misuse (tCO2/ha/year from stock numbers or self-certification)
+    if re.search(
+        r"(t\s*co2\s*/\s*ha\s*/\s*n[aă]m|h[aấ]p\s*th[uụ]\s*h[aằ]ng\s*n[aă]m|h[aấ]p\s*th[uụ]\s*h[aà]ng\s*n[aă]m|annual\s*sequestration)",
+        combined_text,
+        re.IGNORECASE,
+    ):
+        score += 25.0
+        red_flags.append(
+            ProposalRedFlag(
+                code="FRAUD_MISUSED_ANNUAL_CO2_RATE",
+                severity="high",
+                evidenceSnippet=req.promisedCo2ClaimText[:160] or combined_text[:160],
+                explanation="Đề nghị đánh tráo trữ lượng sinh khối theo thời điểm (CTU 2015) thành mức hấp thụ hằng năm tCO2/ha/năm để thổi phồng sản lượng tín chỉ.",
+                referenceToVerify="[R1] Nghiên cứu Giồng Trôm (2015) & [R4] IPCC 2019",
+            )
+        )
+
+    # 4. Pressure urgency / lock-in / self-issued credit claim
+    pressure_match = re.search(
+        r"(chuy[eể]n\s*ti[eề]n\s*ngay|k[yý]\s*trong\s*(?:h[oô]m\s*nay|ng[aà]y)|[dđ][oộ]c\s*quy[eề]n\s*v[iĩ]nh\s*vi[eễ]n|kh[oô]ng\s*c[aầ]n\s*th[aẩ]m\s*[dđ][iị]nh|[dđ][aã]\s*(?:ch[uứ]ng\s*nh[aậ]n|ph[aá]t\s*h[aà]nh)\s*s[aẵ]n|sign\s*today|transfer\s*now)",
+        combined_text,
+        re.IGNORECASE,
+    )
+    if pressure_match:
+        score += 25.0
+        red_flags.append(
+            ProposalRedFlag(
+                code="FRAUD_HIGH_PRESSURE_OR_LOCKIN",
+                severity="high",
+                evidenceSnippet=pressure_match.group(0),
+                explanation="Tạo áp lực chuyển tiền/ký gấp hoặc điều khoản độc quyền kéo dài, tránh quy trình thẩm định VVB là dấu hiệu rủi ro cao.",
+                referenceToVerify="[R5] Verra / [R7] Gold Standard Validation Rules",
+            )
+        )
+
+    # 5. Missing proposer identity or registry reference
+    if not req.proposerName.strip() or not req.knownRegistryId.strip():
+        score += 10.0
+        red_flags.append(
+            ProposalRedFlag(
+                code="PROPOSAL_UNVERIFIED_ENTITY_OR_REGISTRY",
+                severity="warning",
+                evidenceSnippet=f"Đơn vị='{req.proposerName or 'Không nêu rõ'}', Mã dự án/Registry='{req.knownRegistryId or 'Thiếu'}'",
+                explanation="Chưa cung cấp tên pháp nhân đầy đủ hoặc mã định danh dự án trên registry (Verra/Gold Standard/hệ thống quốc gia) để đối chiếu.",
+                referenceToVerify="[R12] Nghị định 29/2026/NĐ-CP",
+            )
+        )
+
+    final_score = min(100.0, round(score, 1))
+    risk_level: Literal["Low", "Medium", "High"] = (
+        "High" if final_score >= 50.0 else ("Medium" if final_score >= 25.0 else "Low")
+    )
+
+    if final_score >= 50.0 or (req.upfrontFeeRequestedVnd > 0 and final_score >= 35.0):
+        rec = "DO_NOT_SIGN_OR_PAY"
+        advice = "CẢNH BÁO ĐỎ: TUYỆT ĐỐI KHÔNG ký hợp đồng hay chuyển tiền đặt cọc. Đề nghị có nhiều dấu hiệu lừa đảo/thổi phồng doanh thu carbon."
+    elif final_score >= 25.0:
+        rec = "HIGH_CAUTION_VERIFY_FIRST"
+        advice = "CẨN TRỌNG CAO: Tạm dừng giao dịch để đối chiếu pháp nhân, thông qua Hợp tác xã và rà soát tài chính thực tế trước khi quyết định."
+    else:
+        rec = "LOW_RISK_CONTINUE_DUE_DILIGENCE"
+        advice = "Chưa phát hiện dấu hiệu lừa đảo rõ ràng trong nội dung nhập, nhưng vẫn cần thẩm định dòng tiền nông sản và đọc kỹ điều khoản hợp đồng."
+
+    return ProposalFraudCheckResponse(
+        checkId=str(uuid.uuid4()),
+        checkedAt=datetime.now(timezone.utc).isoformat(),
+        fraudRiskScore=final_score,
+        riskLevel=risk_level,
+        decisionRecommendation=rec,
+        summaryAdvice=advice,
+        redFlags=red_flags,
+        referenceSourcesToVerify=["R1", "R4", "R5", "R12", "GF1"],
+        preSignatureChecklist=[
+            "Không chuyển phí đăng ký/đặt cọc trước nếu chưa có hợp đồng minh bạch qua HTX hoặc xác minh pháp nhân.",
+            "Kiểm tra mã dự án công khai trên Registry (Verra/Gold Standard hoặc cổng thông tin Nghị định 29/2026) — không tin ảnh chụp giấy chứng nhận tự cấp.",
+            "Chạy phân tích dòng tiền thuần nông nghiệp trên CocoCarbon AI để bảo đảm vườn có lãi ngay cả khi doanh thu carbon bằng 0.",
+        ],
     )

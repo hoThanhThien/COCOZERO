@@ -35,6 +35,7 @@
     "category": "agri_operations",
     "title": "Cục Đổi mới sáng tạo, Chuyển đổi xanh và Khuyến công (02/07/2024) - Thực trạng canh tác dừa tại tỉnh Bến Tre",
     "url": "https://khuyennongvn.gov.vn/",
+    "metadata": {
       "year": 2024,
       "householdsSurveyed": 150,
       "districts": [
@@ -240,6 +241,7 @@
     "category": "financial_management",
     "title": "Hướng dẫn Lập kế hoạch Tài chính Xanh & Chuẩn bị Hồ sơ Vườn dừa CocoCarbon AI",
     "url": "https://cococarbon.local/docs/green-finance-guide",
+    "metadata": {
       "domain": "Green Farm Financial Management",
       "metrics": [
         "CAPEX",

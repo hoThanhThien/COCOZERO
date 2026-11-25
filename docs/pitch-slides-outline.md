@@ -1,46 +1,47 @@
-# Dàn ý Slide Thuyết trình CocoCarbon AI (Tối đa 10 trang)
+# Dàn ý Slide Thuyết trình CocoCarbon AI (10 Trang — MoMo Tech Contest 2026)
 
-## Slide 1: Tên sản phẩm & Định vị
+## Slide 1: Tên sản phẩm & Định vị (*Human Centered • AI Powered • Science First*)
 - **CocoCarbon AI** — *Từ vườn dừa đến giá trị xanh (From Coconut Farms to Verifiable Value)*
-- Nền tảng AI hỗ trợ chuẩn hóa dữ liệu carbon và chuỗi giá trị dừa vùng Bến Tre (tỉnh Vĩnh Long).
-- Khẩu hiệu: *Human Centered • AI Powered • Science First*.
+- Thuộc 2 chủ đề MoMo Tech Contest 2026: **Trợ lý AI (Tài chính Nông hộ & HTX)** + **Chống lừa đảo (Đầu tư Carbon & Greenwashing)**.
+- Địa bàn khởi điểm: Vùng dừa Bến Tre — Tỉnh Vĩnh Long (bảo mật nền tảng với Firebase Auth, RBAC, IDOR, Rate Limit).
 
-## Slide 2: Bài toán thực tế tại Vùng dừa Bến Tre - Vĩnh Long
-- Nông hộ thiếu công cụ đơn giản để số hóa vườn dừa, giống, tuổi, ranh giới và ảnh hiện trường.
-- Hợp tác xã mất nhiều công tổng hợp thủ công, dễ trùng lặp hồ sơ hoặc thiếu bằng chứng quyền đất.
-- Doanh nghiệp/đơn vị phát triển dự án thiếu dữ liệu có cấu trúc để sàng lọc trước khi thuê thẩm định (VVB).
+## Slide 2: Bài toán thực tế — Hai rủi ro kép của Nông hộ Vườn dừa
+- **Rủi ro mất tiền do lừa đảo dự án carbon**: Môi giới thổi phồng "hấp thụ tCO2/ha/năm cố định", "lợi nhuận chắc chắn" hoặc đòi đóng phí/đặt cọc trước khi ký hợp đồng.
+- **Khó khăn quản lý tài chính vườn**: Nông hộ ít theo dõi chi phí phân bón, nhân công, MRV vs doanh thu nông sản/phụ phẩm (gáo, xơ, mụn dừa) theo tháng/quý/năm để biết có thực sự có lãi trước khi mở rộng.
 
-## Slide 3: Giải pháp & Ranh giới sản phẩm trung thực
-- Chuỗi giá trị khép kín: Số hóa vườn → Kiểm tra chất lượng dữ liệu AI → Ước tính tham khảo CTU 2015 → Gom dữ liệu HTX → Danh mục Dự án & RFQ.
-- Không tự nhận là sàn giao dịch, registry hay VVB; phân biệt rõ Biomass, Carbon Stock, CO2e tham khảo và Tín chỉ đã phát hành.
+## Slide 3: Câu chuyện Sản phẩm & Giải pháp Khép kín
+- Khi nhận đề nghị đầu tư carbon: kiểm tra ngay dấu hiệu lừa đảo trước khi ký/chuyển tiền (`/documents`).
+- Hằng tháng/vụ mùa: ghi thu chi bằng tiếng Việt/Anh tự nhiên (xác nhận trước khi lưu) và dùng **AI Financial Assistant** tính ROI/NPV/dòng tiền dựa trên **dữ liệu thực tế + giả định minh bạch** (`/financial-assistant`).
+- Luồng đầy đủ: Số hóa vườn → Sổ Thu Chi & Đối chiếu Ngân sách → Chống lừa đảo & AI Auditor → CTU 2015 Calculator → HTX & RFQ.
 
-## Slide 4: Nền tảng Khoa học Carbon (Science First)
-- 4 hệ số CTU 2015 [R1] tại Giồng Trôm (24.5180 / 75.2436 / 20.4583 / 69.9189 tCO2/ha); KHÔNG nội suy tuổi, KHÔNG gọi là hấp thụ hằng năm.
-- Khảo sát canh tác Bến Tre 2024 (150 hộ, 160–240 cây/ha [R2]) làm bối cảnh mô tả.
-- Phân tách rõ IPCC 2006 Table 5.3 (196 tấn sinh khối khô/ha [R3]), Verra VM0042 v2.2 [R5], Gold Standard SOC [R7].
+## Slide 4: Trợ lý Tài chính AI (Gemini 4 + Python Engine + Sổ Thu Chi Thực tế)
+- **Không để AI tự tính nhẩm**: `GeminiInteractionsProvider` (`gemini-4-hydrogen` Interactions API, `tools`, `store=False`) gọi hàm Python deterministic (`financial_engine.py`), kèm fallback ngoại tuyến an toàn.
+- **Gắn kết số liệu thật (`FarmFinancialEntries`)**: Tổng hợp **Tháng/Quý/Năm**, đối chiếu thực tế vs ngân sách, cảnh báo `OVER_BUDGET_OPEX` / `ACTUAL_NEGATIVE_CASHFLOW`, tính lại ROI hiệu chỉnh, mô phỏng kịch bản và xuất báo cáo 9 phần.
 
-## Slide 5: Lõi AI Carbon Intelligence (Gemini + PyMuPDF + Curated RAG)
-- Trích xuất PDF/ảnh kèm trang & đoạn trích bằng chứng; bảo vệ prompt injection (`<untrusted_document_data>`).
-- Phát hiện trùng lặp SHA-256 và lệch diện tích/số cây; chấm điểm **Mức độ đầy đủ hồ sơ / Project Readiness** (0–100) yêu cầu Reviewer duyệt.
-- Trợ lý RAG chỉ trích nguồn kiểm chứng [R1]–[R12], tự từ chối khi thiếu dữ liệu.
+## Slide 5: Hệ thống Chống Lừa đảo Đề nghị Đầu tư & Hồ sơ Carbon
+- **Kiểm tra Đề nghị Đầu tư (`/api/carbon/proposal-check`)**: Bắt yêu cầu đóng phí trước (`FRAUD_UPFRONT_FEE_DEMAND`), cam kết doanh thu chắc chắn, thổi phồng `tCO2/ha/năm`, áp lực ký gấp (`DO_NOT_SIGN_OR_PAY`).
+- **Tách biệt công bằng 3 chỉ số**: `Project Readiness Score`, `Document Completeness Score`, `Carbon Integrity Risk Score` — **thiếu hồ sơ KHÔNG bị đánh đồng là gian lận** (`IncompleteDocuments_NotFraud`), luôn qua Reviewer duyệt.
 
-## Slide 6: Kiến trúc Kỹ thuật & Bảo mật
-- Web (Next.js/TypeScript) + Android Native (Kotlin/Compose) dùng chung 1 Firebase Auth project.
-- C# ASP.NET Core 8 là nguồn sự thật nghiệp vụ (VerifyIdTokenAsync, RBAC, Calculator, PostgreSQL+PostGIS, Private Storage + HMAC Signed URL).
-- Python FastAPI AI chạy nội bộ riêng biệt qua `X-Internal-Api-Key`, có fallback an toàn khi AI mất kết nối.
+## Slide 6: Nền tảng Khoa học Carbon & RAG 5 Nhóm Nguồn Kiểm chứng
+- 4 hệ số CTU 2015 `[R1]` (24.5180 / 75.2436 / 20.4583 / 69.9189 tCO2/ha); từ chối nội suy tuổi (`HTTP 422`), không gán giá tín chỉ khi thiếu căn cứ.
+- Kho RAG **10 nguồn / 5 nhóm** (`coconut_research`, `agri_operations`, `financial_management`, `carbon_regulation`, `carbon_mrv`: `R1–R12`, `AGRI1`, `GF1`) được kiểm tra cấu trúc ngay lúc khởi động FastAPI & CI.
 
-## Slide 7: Kịch bản Demo Trực tiếp
-- Đăng nhập → Khai báo vườn → Calculator C# (75.2436 tCO2 tham khảo cho 1 ha Dừa Ta 10 năm) → Upload PDF → AI Auditor trích xuất + Reviewer duyệt → HTX & RFQ.
+## Slide 7: Kiến trúc Kỹ thuật & Bảo mật Sản phẩm
+- Web (Next.js 15 + Firebase Google/Email Auth baked via Docker build args) + Android Native (Kotlin/Compose).
+- **C# ASP.NET Core 8** làm nguồn sự thật nghiệp vụ (`VerifyIdTokenAsync`, RBAC, IDOR check, Calculator `decimal`, HMAC Signed URL).
+- **Python FastAPI** chạy nội bộ qua `X-Internal-Api-Key`; Docker Compose + Nginx TLS reverse proxy.
 
-## Slide 8: Tính khả thi & Mô hình Triển khai
-- Web-first qua Docker Compose + Nginx + HTTPS; Android APK dùng chung REST API hiện trường (GPS + Camera).
-- Chi phí vận hành gọn nhẹ, phù hợp HTX và doanh nghiệp nông nghiệp ĐBSCL.
+## Slide 8: Minh chứng Kiểm thử Đa tầng & Chất lượng Thực thi
+- CI tự động `.github/workflows/ci.yml` + kiểm thử cục bộ đầy đủ các tầng:
+  - Python `pytest`: Unit & API (Financial Engine, RAG JSON validation, Gemini Tool Calling mock/fallback, Proposal & Integrity 3-score).
+  - C# `dotnet test`: Unit CTU 2015 Calculator + Integration Security/IDOR/E2E.
+  - Web: Vitest guardrails + Next.js production build.
+  - Android: Unit test & Kotlin source.
 
-## Slide 9: Tác động Xã hội, Môi trường & Kinh tế
-- Minh bạch hóa dữ liệu cho nông hộ và HTX vùng dừa Bến Tre - Vĩnh Long.
-- Giảm chi phí chuẩn bị hồ sơ dự án ban đầu; sẵn sàng nền tảng dữ liệu mở rộng sang phụ phẩm dừa (xơ, mụn, gáo).
+## Slide 9: Tiềm năng Tác động & Tính Khả thi Triển khai
+- Phục vụ trực tiếp nông hộ, HTX vùng dừa ĐBSCL (Vĩnh Long / Bến Tre) tăng khả năng kiểm soát chi phí thực tế, tận dụng phụ phẩm tuần hoàn (xơ/mụn/gáo) và phòng tránh lừa đảo xanh.
+- Đóng gói gọn nhẹ trên VPS via Docker Compose + APK hiện trường, chi phí vận hành thấp.
 
-## Slide 10: Lộ trình Phát triển (P0 → P1 → P2)
-- **P0 (MVP)**: Farm Registry, Calculator CTU 2015, AI Auditor, HTX Dashboard, Directory/RFQ, Android APK.
-- **P1**: Quản lý phụ phẩm dừa kinh tế tuần hoàn, xuất báo cáo PDF, đa ngôn ngữ Anh/Việt.
-- **P2**: Hợp tác viện/trường hiệu chuẩn mô hình sinh khối Tier 2/3 địa phương, MRV định kỳ, kết nối registry khi được cấp phép.
+## Slide 10: Lộ trình Nâng cấp Tiếp theo
+- **Đã hoàn thành**: Core API, Financial Companion thực tế, Natural-Language Ledger, Proposal Fraud Warning, AI 3-Score Integrity, Docker & CI.
+- **Giai đoạn sau cuộc thi**: Tích hợp OCR nâng cao cho hóa đơn vật tư nông nghiệp, chuẩn hóa hiệu chuẩn Tier 2/3 cùng viện nghiên cứu và kết nối registry chính thức theo Nghị định 29/2026/NĐ-CP.

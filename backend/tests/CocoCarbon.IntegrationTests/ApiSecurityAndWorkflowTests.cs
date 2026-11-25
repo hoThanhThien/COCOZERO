@@ -524,6 +524,9 @@ public class ApiSecurityAndWorkflowTests : IClassFixture<CocoCarbonApiFactory>
         ledgerResp.EnsureSuccessStatusCode();
         var ledgerJson = await ledgerResp.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(15000000m, ledgerJson.GetProperty("summary").GetProperty("netDeclaredFarmCashflowVnd").GetDecimal());
+        Assert.True(ledgerJson.GetProperty("aggregations").GetProperty("byMonth").GetArrayLength() >= 1);
+        Assert.True(ledgerJson.GetProperty("aggregations").GetProperty("byQuarter").GetArrayLength() >= 1);
+        Assert.True(ledgerJson.GetProperty("aggregations").GetProperty("byYear").GetArrayLength() >= 1);
 
         // IDOR: Farmer B cannot read or add to Farmer A's finance ledger
         Assert.Equal(HttpStatusCode.Forbidden, (await farmerB.GetAsync($"/api/v1/farms/{farmId}/finance-ledger")).StatusCode);
@@ -549,6 +552,10 @@ public class ApiSecurityAndWorkflowTests : IClassFixture<CocoCarbonApiFactory>
             revenue = new { areaHa = 1.0m, annualCoconutYieldUnitsPerHa = 10000, coconutUnitPriceVnd = 5000 }
         });
         finCalcResp.EnsureSuccessStatusCode();
+        var nlParseResp = await farmerA.PostAsJsonAsync("/api/financial/parse-transaction", new { text = "Chi 2 triệu mua phân hữu cơ" });
+        nlParseResp.EnsureSuccessStatusCode();
+        var propCheckResp = await farmerA.PostAsJsonAsync("/api/carbon/proposal-check", new { upfrontFeeRequestedVnd = 5000000m, contractTermsText = "Chuyển tiền ngay" });
+        propCheckResp.EnsureSuccessStatusCode();
         // Farmer B cannot enrich with Farmer A's farmId
         var idorFinResp = await farmerB.PostAsJsonAsync($"/api/financial/calculate?farmId={farmId}", new
         {

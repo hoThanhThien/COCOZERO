@@ -92,7 +92,6 @@ class GeminiInteractionsProvider(BaseAiProvider):
                         "mime_type": "application/json",
                         "schema": ModelExtractionOutput.model_json_schema(),
                     },
-                    generation_config={"temperature": 0.1},
                     store=False,
                     timeout=self._timeout,
                 )
@@ -146,7 +145,6 @@ class GeminiInteractionsProvider(BaseAiProvider):
                     model=self.model_name,
                     input=prompt,
                     system_instruction=RAG_SYSTEM_INSTRUCTION,
-                    generation_config={"temperature": 0.2},
                     store=False,
                     timeout=self._timeout,
                 )
@@ -217,7 +215,7 @@ class GeminiInteractionsProvider(BaseAiProvider):
                         input=cur_history,
                         tools=TOOL_DECLARATIONS,
                         system_instruction=RAG_SYSTEM_INSTRUCTION,
-                        generation_config={"temperature": 0.1, "tool_choice": "auto"},
+                        generation_config={"tool_choice": "auto"},
                         timeout=self._timeout,
                     )
 

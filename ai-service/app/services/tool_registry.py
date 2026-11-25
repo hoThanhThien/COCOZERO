@@ -9,9 +9,15 @@ from app.schemas_financial import (
     RevenueInput,
     ScenarioSimulationRequest,
 )
-from app.services.carbon_integrity import CarbonIntegrityCheckRequest, evaluate_carbon_integrity
+from app.services.carbon_integrity import (
+    CarbonIntegrityCheckRequest,
+    ProposalFraudCheckRequest,
+    evaluate_carbon_integrity,
+    evaluate_investment_proposal,
+)
 from app.services.financial_engine import (
     build_deterministic_financial_report,
+    parse_natural_language_transaction,
     run_financial_calculation,
     run_scenario_simulation,
 )
@@ -113,6 +119,35 @@ TOOL_DECLARATIONS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "name": "evaluate_investment_proposal",
+        "description": (
+            "Kiểm tra đề nghị đầu tư / hợp đồng carbon trước khi nông hộ ký tên hoặc chuyển tiền: "
+            "phát hiện yêu cầu đóng phí trước, cam kết lợi nhuận chắc chắn, tuyên bố sai tCO2/ha/năm và áp lực ký gấp."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "proposerName": {"type": "string"},
+                "upfrontFeeRequestedVnd": {"type": "number"},
+                "promisedAnnualCarbonRevenueVnd": {"type": "number"},
+                "promisedCo2ClaimText": {"type": "string"},
+                "contractTermsText": {"type": "string"},
+                "knownRegistryId": {"type": "string"},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "name": "parse_natural_language_transaction",
+        "description": "Phân tích mô tả chi tiêu/thu hoạch vườn dừa tự nhiên (VI/EN) để đề xuất ghi vào Sổ Thu Chi Vườn (cần user xác nhận).",
+        "parameters": {
+            "type": "object",
+            "properties": {"text": {"type": "string"}},
+            "required": ["text"],
+        },
+    },
 ]
 
 
@@ -123,6 +158,16 @@ def execute_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
             req = FinancialCalculationRequest(
                 farmName=str(arguments.get("farmName") or "Vườn dừa CocoCarbon"),
                 discountRate=float(arguments.get("discountRate", 0.08)),
+                actualRecordedExpenseVnd=(
+                    float(arguments["actualRecordedExpenseVnd"])
+                    if arguments.get("actualRecordedExpenseVnd") is not None
+                    else None
+                ),
+                actualRecordedRevenueVnd=(
+                    float(arguments["actualRecordedRevenueVnd"])
+                    if arguments.get("actualRecordedRevenueVnd") is not None
+                    else None
+                ),
                 investment=InvestmentCostInput(
                     areaHa=float(arguments.get("areaHa", 1.0)),
                     horizonYears=int(arguments.get("horizonYears", 5)),
@@ -193,6 +238,22 @@ def execute_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
             )
             res = evaluate_carbon_integrity(check_req)
             return {"ok": True, "integrity": res.model_dump()}
+
+        if name == "evaluate_investment_proposal":
+            prop_req = ProposalFraudCheckRequest(
+                proposerName=str(arguments.get("proposerName") or ""),
+                upfrontFeeRequestedVnd=float(arguments.get("upfrontFeeRequestedVnd") or 0.0),
+                promisedAnnualCarbonRevenueVnd=float(arguments.get("promisedAnnualCarbonRevenueVnd") or 0.0),
+                promisedCo2ClaimText=str(arguments.get("promisedCo2ClaimText") or ""),
+                contractTermsText=str(arguments.get("contractTermsText") or ""),
+                knownRegistryId=str(arguments.get("knownRegistryId") or ""),
+            )
+            res = evaluate_investment_proposal(prop_req)
+            return {"ok": True, "proposalCheck": res.model_dump()}
+
+        if name == "parse_natural_language_transaction":
+            proposal = parse_natural_language_transaction(str(arguments.get("text") or ""))
+            return {"ok": True, "transactionProposal": proposal.model_dump()}
 
         return {"ok": False, "error": f"Unknown tool: {name}"}
     except (ValidationError, ValueError, TypeError) as exc:

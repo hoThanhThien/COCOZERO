@@ -34,6 +34,17 @@ export default function DocumentsAndAuditPage() {
     scoreSeparationExplanation: string;
     explainableAlerts: { code: string; scoreTypeAffected: string; explanation: string; evidenceSnippet: string }[];
   } | null>(null);
+  const [proposerName, setProposerName] = useState("");
+  const [upfrontFee, setUpfrontFee] = useState("5000000");
+  const [proposalText, setProposalText] = useState("Đơn vị cam kết lợi nhuận chắc chắn 80 triệu/ha/năm, hấp thụ 75 tCO2/ha/năm, cần chuyển phí kích hoạt ngay hôm nay.");
+  const [proposalRes, setProposalRes] = useState<{
+    fraudRiskScore: number;
+    riskLevel: string;
+    decisionRecommendation: string;
+    summaryAdvice: string;
+    redFlags: { code: string; severity: string; evidenceSnippet: string; explanation: string; referenceToVerify: string }[];
+    preSignatureChecklist: string[];
+  } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -56,6 +67,24 @@ export default function DocumentsAndAuditPage() {
       setIntegrityRes(res);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Lỗi kiểm tra toàn vẹn carbon.");
+    }
+  }
+
+  async function runProposalCheck() {
+    setErr(null);
+    try {
+      const res = await apiFetch<NonNullable<typeof proposalRes>>("/api/carbon/proposal-check", {
+        method: "POST",
+        body: JSON.stringify({
+          proposerName,
+          upfrontFeeRequestedVnd: Number(upfrontFee) || 0,
+          contractTermsText: proposalText,
+          promisedCo2ClaimText: proposalText,
+        }),
+      });
+      setProposalRes(res);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Lỗi kiểm tra đề nghị đầu tư carbon.");
     }
   }
 
@@ -149,6 +178,37 @@ export default function DocumentsAndAuditPage() {
               </div>
             </div>
             <p className="text-[11px] text-[#526158]">{integrityRes.scoreSeparationExplanation}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="mb-6 rounded-xl border border-amber-300 bg-white p-5 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-bold text-[#123c29]">
+            Kiểm tra Đề nghị Đầu tư Carbon — Cảnh báo Chống Lừa đảo Trước Khi Ký / Chuyển Tiền
+          </h2>
+          <button type="button" onClick={runProposalCheck} className="rounded-lg bg-amber-700 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-amber-800">
+            Kiểm tra Đề nghị Đầu tư
+          </button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3 text-xs">
+          <input value={proposerName} onChange={(e) => setProposerName(e.target.value)} className="rounded-lg border border-[#d8e2da] px-3 py-2" placeholder="Tên đơn vị/môi giới đề xuất (nếu có)" />
+          <input type="number" value={upfrontFee} onChange={(e) => setUpfrontFee(e.target.value)} className="rounded-lg border border-[#d8e2da] px-3 py-2" placeholder="Phí/tiền cọc yêu cầu trước (VND)" />
+          <input value={proposalText} onChange={(e) => setProposalText(e.target.value)} className="rounded-lg border border-[#d8e2da] px-3 py-2 sm:col-span-3" placeholder="Dán nội dung tin nhắn/hợp đồng đề nghị đầu tư carbon..." />
+        </div>
+        {proposalRes && (
+          <div className={`rounded-lg border p-3 text-xs space-y-2 ${proposalRes.decisionRecommendation === "DO_NOT_SIGN_OR_PAY" ? "border-red-300 bg-red-50/70" : "border-amber-200 bg-amber-50/50"}`}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-bold text-[#123c29]">Khuyến nghị: {proposalRes.decisionRecommendation}</span>
+              <span className="font-extrabold">Rủi ro lừa đảo: {proposalRes.fraudRiskScore}/100 ({proposalRes.riskLevel})</span>
+            </div>
+            <p>{proposalRes.summaryAdvice}</p>
+            {proposalRes.redFlags.map((rf, i) => (
+              <div key={i} className="rounded border border-red-200 bg-white p-2">
+                <span className="font-bold text-red-800">[{rf.code}]</span> {rf.explanation}
+                <p className="text-[11px] italic text-[#526158]">Bằng chứng: &ldquo;{rf.evidenceSnippet}&rdquo; • Đối chiếu: {rf.referenceToVerify}</p>
+              </div>
+            ))}
           </div>
         )}
       </div>

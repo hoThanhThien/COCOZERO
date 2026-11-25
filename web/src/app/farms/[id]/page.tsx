@@ -14,6 +14,11 @@ interface FinanceLedgerDto {
     netDeclaredFarmCashflowVnd: number;
     scientificBoundaryNotice: string;
   };
+  aggregations?: {
+    byMonth: { period: string; expenseVnd: number; revenueVnd: number; netCashflowVnd: number; entryCount: number }[];
+    byQuarter: { period: string; expenseVnd: number; revenueVnd: number; netCashflowVnd: number; entryCount: number }[];
+    byYear: { period: string; expenseVnd: number; revenueVnd: number; netCashflowVnd: number; entryCount: number }[];
+  };
   entries: {
     id: string;
     entryType: string;
@@ -331,6 +336,15 @@ export default function FarmDetailPage() {
                 + Ghi nhận thu/chi
               </button>
             </form>
+            {ledger?.aggregations && ledger.aggregations.byMonth.length > 0 && (
+              <div className="grid gap-2 text-[11px] sm:grid-cols-3">
+                {ledger.aggregations.byMonth.slice(0, 3).map((m) => (
+                  <div key={m.period} className="rounded-lg border border-[#e2eae3] bg-[#f8fbf8] p-2">
+                    <span className="font-bold text-[#123c29]">Tháng {m.period}</span>: Thu {m.revenueVnd.toLocaleString("vi-VN")}đ • Chi {m.expenseVnd.toLocaleString("vi-VN")}đ
+                  </div>
+                ))}
+              </div>
+            )}
             {ledger && ledger.entries.length > 0 && (
               <div className="divide-y divide-[#eef3ef] text-xs">
                 {ledger.entries.map((en) => (

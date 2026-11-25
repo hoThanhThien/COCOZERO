@@ -54,6 +54,35 @@ public sealed class GreenFinanceController(CocoCarbonDbContext db, IAuditService
             .Where(e => e.EntryType is FinancialEntryType.CoconutHarvestRevenue or FinancialEntryType.ByProductRevenue or FinancialEntryType.GreenSupportGrantOrLoan)
             .Sum(e => e.AmountVnd);
 
+        bool IsExpense(FinancialEntryType t) =>
+            t is FinancialEntryType.CareExpense or FinancialEntryType.MrvPreparationExpense;
+
+        List<object> AggregateBy(Func<DateTimeOffset, string> keySelector) =>
+            entries
+                .GroupBy(e => keySelector(e.EntryDate))
+                .OrderByDescending(g => g.Key)
+                .Select(g =>
+                {
+                    var exp = g.Where(x => IsExpense(x.EntryType)).Sum(x => x.AmountVnd);
+                    var rev = g.Where(x => !IsExpense(x.EntryType)).Sum(x => x.AmountVnd);
+                    return (object)new
+                    {
+                        period = g.Key,
+                        expenseVnd = exp,
+                        revenueVnd = rev,
+                        netCashflowVnd = rev - exp,
+                        entryCount = g.Count()
+                    };
+                })
+                .ToList();
+
+        var aggregations = new
+        {
+            byMonth = AggregateBy(d => $"{d.UtcDateTime:yyyy-MM}"),
+            byQuarter = AggregateBy(d => $"{d.UtcDateTime.Year}-Q{((d.UtcDateTime.Month - 1) / 3) + 1}"),
+            byYear = AggregateBy(d => $"{d.UtcDateTime:yyyy}")
+        };
+
         return Ok(new
         {
             farmId,
@@ -67,6 +96,7 @@ public sealed class GreenFinanceController(CocoCarbonDbContext db, IAuditService
                     "Sổ thu chi phản ánh dòng tiền nông sản/phụ phẩm và chi phí canh tác do người dùng khai báo (USER_DECLARED). " +
                     "Không phải định giá tín chỉ carbon hay doanh thu carbon được bảo đảm."
             },
+            aggregations,
             entries
         });
     }

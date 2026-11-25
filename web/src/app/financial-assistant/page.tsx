@@ -19,6 +19,22 @@ interface CashFlowRow {
   cumulativeCashFlowWithCarbonScenarioVnd: number;
 }
 
+interface FinancialAlertDto {
+  code: string;
+  severity: "info" | "warning" | "high";
+  title: string;
+  message: string;
+  recommendedAction: string;
+}
+
+interface PeriodSummaryDto {
+  period: string;
+  expenseVnd: number;
+  revenueVnd: number;
+  netCashflowVnd: number;
+  entryCount: number;
+}
+
 interface CalcResult {
   farmName: string;
   areaHa: number;
@@ -53,6 +69,30 @@ interface CalcResult {
     npvAgriOnlyVnd: number;
   };
   cashFlowSchedule: CashFlowRow[];
+  actualAdjustedCashFlowSchedule?: CashFlowRow[];
+  actualVsBudget?: {
+    hasActualData: boolean;
+    actualRecordedExpenseVnd: number;
+    actualRecordedRevenueVnd: number;
+    actualNetCashflowVnd: number;
+    plannedYear1BudgetVnd: number;
+    expenseVarianceVnd: number;
+    expenseUtilizationPercent: number;
+    isOverBudget: boolean;
+    adjustedTotalCostVnd: number;
+    adjustedTotalAgriRevenueVnd: number;
+    adjustedNetProfitAgriOnlyVnd: number;
+    adjustedRoiPercentAgriOnly: number;
+    adjustedPaybackPeriodYears?: number | null;
+    adjustedNpvAgriOnlyVnd: number;
+    comparisonSummary: string;
+  } | null;
+  actualPeriodAggregations?: {
+    byMonth: PeriodSummaryDto[];
+    byQuarter: PeriodSummaryDto[];
+    byYear: PeriodSummaryDto[];
+  };
+  financialAlerts?: FinancialAlertDto[];
   actualVsEstimateNotes: string[];
   assumptions: string[];
 }
@@ -124,7 +164,20 @@ export default function FinancialAssistantPage() {
   const [sessionId] = useState(() => (typeof crypto !== "undefined" ? crypto.randomUUID() : "web-session"));
   const [chatInput, setChatInput] = useState("Tính ROI, lợi nhuận và đề xuất tối ưu chi phí cho vườn dừa này?");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [nlTxText, setNlTxText] = useState("Hôm nay chi 3.5 triệu mua phân hữu cơ mụn dừa cho vườn");
+  const [nlTxProposal, setNlTxProposal] = useState<{
+    suggestedEntryType: string;
+    category: string;
+    amountVnd: number;
+    entryDateIso: string;
+    notes: string;
+    direction: string;
+    clarificationNeeded?: string | null;
+    explanation: string;
+  } | null>(null);
+  const [periodTab, setPeriodTab] = useState<"byMonth" | "byQuarter" | "byYear">("byMonth");
   const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -173,10 +226,11 @@ export default function FinancialAssistantPage() {
   async function runFinancialSuite() {
     setBusy(true);
     setErr(null);
+    setMsg(null);
     try {
       const payload = buildPayload();
       const qs = farmId ? `?farmId=${farmId}` : "";
-      const [calc, sim, rep] = await Promise.all([
+      const [calcRes, simRes, repRes] = await Promise.allSettled([
         apiFetch<CalcResult>(`/api/financial/calculate${qs}`, { method: "POST", body: JSON.stringify(payload) }),
         apiFetch<{ baseSummary: ScenarioItem; scenarios: ScenarioItem[] }>("/api/financial/scenarios", {
           method: "POST",
@@ -187,11 +241,63 @@ export default function FinancialAssistantPage() {
           body: JSON.stringify({ calculationInput: payload, includeScenarios: true }),
         }),
       ]);
-      setCalcResult(calc);
-      setScenarios(sim);
-      setReport(rep);
+      const warnings: string[] = [];
+      if (calcRes.status === "fulfilled") setCalcResult(calcRes.value);
+      else warnings.push(`Tính toán tài chính: ${calcRes.reason instanceof Error ? calcRes.reason.message : "lỗi"}`);
+
+      if (simRes.status === "fulfilled") setScenarios(simRes.value);
+      else warnings.push(`Mô phỏng kịch bản: ${simRes.reason instanceof Error ? simRes.reason.message : "lỗi"}`);
+
+      if (repRes.status === "fulfilled") setReport(repRes.value);
+      else warnings.push(`Báo cáo tổng hợp: ${repRes.reason instanceof Error ? repRes.reason.message : "lỗi"}`);
+
+      if (warnings.length === 3) {
+        setErr(warnings[0]);
+      } else if (warnings.length > 0) {
+        setErr(`Một phần chức năng chưa phản hồi (${warnings.join("; ")}); các kết quả còn lại vẫn hiển thị bình thường.`);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function parseNaturalTransaction() {
+    if (!nlTxText.trim()) return;
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const prop = await apiFetch<NonNullable<typeof nlTxProposal>>("/api/financial/parse-transaction", {
+        method: "POST",
+        body: JSON.stringify({ text: nlTxText.trim(), farmId: farmId || null }),
+      });
+      setNlTxProposal(prop);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Vui lòng đăng nhập trước khi sử dụng AI Financial Assistant.");
+      setErr(e instanceof Error ? e.message : "Không thể phân tích giao dịch ngôn ngữ tự nhiên.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmSaveParsedTransaction() {
+    if (!nlTxProposal || !farmId || nlTxProposal.amountVnd <= 0) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await apiFetch(`/api/v1/farms/${farmId}/finance-ledger`, {
+        method: "POST",
+        body: JSON.stringify({
+          entryType: nlTxProposal.suggestedEntryType,
+          category: nlTxProposal.category,
+          amountVnd: nlTxProposal.amountVnd,
+          notes: `[AI Ledger Assistant] ${nlTxProposal.notes}`,
+        }),
+      });
+      setMsg(`Đã ghi giao dịch "${nlTxProposal.category}" (${nlTxProposal.amountVnd.toLocaleString("vi-VN")} đ) vào Sổ Thu Chi Vườn.`);
+      setNlTxProposal(null);
+      await runFinancialSuite();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Lỗi lưu giao dịch vào sổ vườn.");
     } finally {
       setBusy(false);
     }
@@ -252,8 +358,56 @@ export default function FinancialAssistantPage() {
       subtitle="Gemini Tool Calling + Python Financial Engine + RAG đa nguồn • Tách bạch Dữ liệu thực tế, Giả định và Ước tính"
     >
       {err && <div className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900">{err}</div>}
+      {msg && <div className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">{msg}</div>}
 
       <div className="space-y-6">
+        {/* Natural Language Farm Ledger Recording (with explicit user confirmation) */}
+        <div className="rounded-xl border border-[#d8e2da] bg-white p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-[#123c29]">
+              Ghi Sổ Thu Chi Vườn bằng Ngôn ngữ Tự nhiên (Phân loại AI + Xác nhận trước khi lưu)
+            </h2>
+            <span className="text-[11px] text-[#526158]">
+              {farmId ? "Đang gắn với vườn đã chọn để tự tính lại ROI" : "Chọn một vườn ở biểu mẫu bên dưới để lưu trực tiếp"}
+            </span>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              value={nlTxText}
+              onChange={(e) => setNlTxText(e.target.value)}
+              placeholder="Ví dụ: Hôm nay chi 3.5 triệu mua phân hữu cơ... hoặc Bán dừa thu 18 triệu"
+              className="flex-1 rounded-lg border border-[#d8e2da] px-3 py-2 text-xs"
+            />
+            <button
+              type="button"
+              disabled={busy}
+              onClick={parseNaturalTransaction}
+              className="rounded-lg bg-[#15803d] px-4 py-2 text-xs font-semibold text-white hover:bg-[#123c29] disabled:opacity-50"
+            >
+              Phân tích giao dịch
+            </button>
+          </div>
+          {nlTxProposal && (
+            <div className="rounded-lg border border-emerald-300 bg-[#f6fbf7] p-3 text-xs space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-bold text-[#123c29]">
+                  Đề xuất phân loại: [{nlTxProposal.suggestedEntryType}] {nlTxProposal.category} —{" "}
+                  <strong>{nlTxProposal.amountVnd.toLocaleString("vi-VN")} đ</strong> ({nlTxProposal.direction === "expense" ? "Chi phí" : "Doanh thu"})
+                </span>
+                <button
+                  type="button"
+                  disabled={busy || !farmId || nlTxProposal.amountVnd <= 0}
+                  onClick={confirmSaveParsedTransaction}
+                  className="rounded-lg bg-[#123c29] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#15803d] disabled:opacity-50"
+                >
+                  Xác nhận ghi vào Sổ Thu Chi Vườn
+                </button>
+              </div>
+              <p className="text-[#526158]">{nlTxProposal.explanation}</p>
+              {nlTxProposal.clarificationNeeded && <p className="font-semibold text-amber-800">{nlTxProposal.clarificationNeeded}</p>}
+            </div>
+          )}
+        </div>
         {/* Input Form + Chat Split */}
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-xl border border-[#d8e2da] bg-white p-5 space-y-3">
@@ -413,6 +567,81 @@ export default function FinancialAssistantPage() {
         {/* Financial Dashboard, Cost Breakdown, ROI & Cash Flow Chart */}
         {calcResult && (
           <div className="space-y-6">
+            {calcResult.financialAlerts && calcResult.financialAlerts.length > 0 && (
+              <div className="space-y-2">
+                {calcResult.financialAlerts.map((al) => (
+                  <div
+                    key={al.code}
+                    className={`rounded-xl border p-3 text-xs ${al.severity === "high" ? "border-red-300 bg-red-50 text-red-950" : "border-amber-300 bg-amber-50 text-amber-950"}`}
+                  >
+                    <p className="font-bold">[{al.code}] {al.title}</p>
+                    <p className="mt-0.5">{al.message}</p>
+                    <p className="mt-0.5 text-[11px] opacity-85">Khuyến nghị: {al.recommendedAction}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {calcResult.actualVsBudget && (
+              <div className="rounded-xl border border-[#cfe0d3] bg-[#f7faf7] p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-[#123c29]">
+                    Đối chiếu Sổ Thu Chi Thực tế vs Ngân sách Dự kiến & ROI Hiệu chỉnh
+                  </h3>
+                  <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${calcResult.actualVsBudget.isOverBudget ? "bg-red-100 text-red-900" : "bg-emerald-100 text-emerald-900"}`}>
+                    {calcResult.actualVsBudget.isOverBudget ? "VƯỢT NGÂN SÁCH NĂM" : "TRONG NGÂN SÁCH"} ({calcResult.actualVsBudget.expenseUtilizationPercent.toFixed(1)}%)
+                  </span>
+                </div>
+                <div className="grid gap-3 text-xs sm:grid-cols-4">
+                  <div className="rounded-lg border border-[#dce6de] bg-white p-2.5">
+                    <span className="text-[#526158]">Chi thực tế / Kế hoạch năm 1</span>
+                    <p className="mt-0.5 font-bold text-[#123c29]">
+                      {calcResult.actualVsBudget.actualRecordedExpenseVnd.toLocaleString("vi-VN")} / {calcResult.actualVsBudget.plannedYear1BudgetVnd.toLocaleString("vi-VN")} đ
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-[#dce6de] bg-white p-2.5">
+                    <span className="text-[#526158]">Thu thực tế / Ròng thực tế</span>
+                    <p className="mt-0.5 font-bold text-[#15803d]">
+                      {calcResult.actualVsBudget.actualRecordedRevenueVnd.toLocaleString("vi-VN")} đ ({calcResult.actualVsBudget.actualNetCashflowVnd.toLocaleString("vi-VN")} đ)
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-[#dce6de] bg-white p-2.5">
+                    <span className="text-[#526158]">ROI Hiệu chỉnh theo Thực tế</span>
+                    <p className="mt-0.5 font-bold text-[#123c29]">{calcResult.actualVsBudget.adjustedRoiPercentAgriOnly.toFixed(2)}%</p>
+                  </div>
+                  <div className="rounded-lg border border-[#dce6de] bg-white p-2.5">
+                    <span className="text-[#526158]">NPV Hiệu chỉnh</span>
+                    <p className="mt-0.5 font-bold text-[#123c29]">{calcResult.actualVsBudget.adjustedNpvAgriOnlyVnd.toLocaleString("vi-VN")} đ</p>
+                  </div>
+                </div>
+                {calcResult.actualPeriodAggregations && (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex gap-2 text-[11px]">
+                      {(["byMonth", "byQuarter", "byYear"] as const).map((k) => (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => setPeriodTab(k)}
+                          className={`rounded-md px-2.5 py-1 font-semibold ${periodTab === k ? "bg-[#123c29] text-white" : "border border-[#d8e2da] bg-white text-[#123c29]"}`}
+                        >
+                          {k === "byMonth" ? "Theo Tháng" : k === "byQuarter" ? "Theo Quý" : "Theo Năm"}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-[11px]">
+                      {calcResult.actualPeriodAggregations[periodTab].slice(0, 6).map((p) => (
+                        <div key={p.period} className="rounded border border-[#dce6de] bg-white px-2.5 py-1.5">
+                          <strong>{p.period}</strong>: Thu {p.revenueVnd.toLocaleString("vi-VN")}đ • Chi {p.expenseVnd.toLocaleString("vi-VN")}đ • Ròng{" "}
+                          <span className={p.netCashflowVnd >= 0 ? "text-[#15803d] font-bold" : "text-red-700 font-bold"}>
+                            {p.netCashflowVnd.toLocaleString("vi-VN")}đ
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl border border-[#d8e2da] bg-white p-4">
                 <p className="text-xs text-[#526158]">Tổng đầu tư ({calcResult.horizonYears} năm)</p>

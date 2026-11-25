@@ -1,10 +1,11 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock
+import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 from app.providers.gemini_provider import GeminiInteractionsProvider
 from app.services.intent_classifier import classify_intent
-from app.services.rag_knowledge import retrieve_relevant_sources
+from app.services.rag_knowledge import retrieve_relevant_sources, validate_curated_sources
 
 client = TestClient(app)
 
@@ -257,3 +258,96 @@ def test_carbon_integrity_separates_missing_docs_from_fraud_risk():
     assert fr["carbonIntegrityRiskScore"] >= 60.0
     assert fr["riskLevel"] == "High"
     assert fr["integrityStatus"] == "HighIntegrityRisk_Flagged"
+
+
+
+def test_rag_sources_json_startup_validation():
+    sources = validate_curated_sources()
+    assert len(sources) == 10
+    codes = {s["sourceCode"] for s in sources}
+    assert {"R1", "R2", "R12", "AGRI1", "GF1"}.issubset(codes)
+    for src in sources:
+        assert isinstance(src["metadata"], dict)
+        assert isinstance(src["keywords"], list)
+
+
+def test_actual_ledger_recalculates_roi_and_triggers_overbudget_alert():
+    payload = _sample_financial_payload()
+    # Annual planned OPEX = 30M; simulate actual expense = 45M (over budget) & revenue = 20M (negative cashflow)
+    payload["actualRecordedExpenseVnd"] = 45_000_000.0
+    payload["actualRecordedRevenueVnd"] = 20_000_000.0
+    payload["actualEntries"] = [
+        {"entryType": "CareExpense", "category": "Phân bón", "amountVnd": 35_000_000.0, "entryDate": "2026-10-10T00:00:00Z"},
+        {"entryType": "MrvPreparationExpense", "category": "Đo đạc MRV", "amountVnd": 10_000_000.0, "entryDate": "2026-11-05T00:00:00Z"},
+        {"entryType": "CoconutHarvestRevenue", "category": "Dừa khô", "amountVnd": 20_000_000.0, "entryDate": "2026-11-20T00:00:00Z"},
+    ]
+    resp = client.post("/api/financial/calculate", json=payload)
+    assert resp.status_code == 200
+    body = resp.json()
+    avb = body["actualVsBudget"]
+    assert avb is not None and avb["isOverBudget"] is True
+    assert avb["expenseVarianceVnd"] == 15_000_000.0
+    # Adjusted ROI reflects actual Year 1 (-25M net instead of planned +96M net -> lower than 215% plan)
+    assert avb["adjustedRoiPercentAgriOnly"] < body["profitAndRoi"]["roiPercentAgriOnly"]
+    assert len(body["actualAdjustedCashFlowSchedule"]) == 6
+    assert len(body["actualPeriodAggregations"]["byMonth"]) == 2
+    assert len(body["actualPeriodAggregations"]["byQuarter"]) == 1
+    assert len(body["actualPeriodAggregations"]["byYear"]) == 1
+    alert_codes = {a["code"] for a in body["financialAlerts"]}
+    assert "OVER_BUDGET_OPEX" in alert_codes
+    assert "ACTUAL_NEGATIVE_CASHFLOW" in alert_codes
+
+
+def test_natural_language_transaction_parser():
+    r1 = client.post("/api/financial/parse-transaction", json={"text": "Hôm nay chi 3.5 triệu mua phân hữu cơ mụn dừa"})
+    assert r1.status_code == 200
+    b1 = r1.json()
+    assert b1["suggestedEntryType"] == "CareExpense"
+    assert b1["amountVnd"] == 3_500_000.0
+    assert b1["direction"] == "expense"
+    assert b1["requiresUserConfirmation"] is True
+
+    r2 = client.post("/api/financial/parse-transaction", json={"text": "Sold coconut harvest 18000000 VND"})
+    assert r2.status_code == 200
+    assert r2.json()["suggestedEntryType"] == "CoconutHarvestRevenue"
+    assert r2.json()["amountVnd"] == 18_000_000.0
+
+    r_missing = client.post("/api/financial/parse-transaction", json={"text": "Mua phân bón cho vườn"})
+    assert r_missing.status_code == 200
+    assert r_missing.json()["amountVnd"] == 0.0
+    assert r_missing.json()["clarificationNeeded"] is not None
+
+
+def test_carbon_investment_proposal_fraud_protection():
+    scam = client.post(
+        "/api/carbon/proposal-check",
+        json={
+            "proposerName": "",
+            "upfrontFeeRequestedVnd": 5_000_000,
+            "promisedAnnualCarbonRevenueVnd": 80_000_000,
+            "promisedCo2ClaimText": "Hấp thụ 75 tCO2/ha/năm cố định",
+            "contractTermsText": "Cam kết lợi nhuận chắc chắn, cần chuyển tiền ngay hôm nay để giữ suất độc quyền vĩnh viễn.",
+        },
+    )
+    assert scam.status_code == 200
+    s_body = scam.json()
+    assert s_body["decisionRecommendation"] == "DO_NOT_SIGN_OR_PAY"
+    assert s_body["riskLevel"] == "High"
+    assert s_body["fraudRiskScore"] >= 60.0
+    flag_codes = {f["code"] for f in s_body["redFlags"]}
+    assert "FRAUD_UPFRONT_FEE_DEMAND" in flag_codes
+    assert "FRAUD_GUARANTEED_CARBON_PROFIT" in flag_codes
+    assert "FRAUD_HIGH_PRESSURE_OR_LOCKIN" in flag_codes
+
+    clean = client.post(
+        "/api/carbon/proposal-check",
+        json={
+            "proposerName": "HTX Dừa Xanh Vĩnh Long",
+            "knownRegistryId": "VCS-DRAFT-2026-01",
+            "upfrontFeeRequestedVnd": 0,
+            "promisedAnnualCarbonRevenueVnd": 0,
+            "contractTermsText": "Đề nghị khảo sát dữ liệu vườn 2 ha trước khi lập baseline VM0042.",
+        },
+    )
+    assert clean.status_code == 200
+    assert clean.json()["decisionRecommendation"] == "LOW_RISK_CONTINUE_DUE_DILIGENCE"

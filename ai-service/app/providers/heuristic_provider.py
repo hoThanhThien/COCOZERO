@@ -157,6 +157,14 @@ class HeuristicFallbackProvider(BaseAiProvider):
                     )
                     if r["carbonScenarioIncluded"]:
                         lines.append(f"• Kịch bản carbon giả định (chưa phát hành tín chỉ): +{r['hypotheticalCarbonRevenueTotalVnd']:,.0f} VND")
+                    if tout["calculation"].get("actualVsBudget"):
+                        avb = tout["calculation"]["actualVsBudget"]
+                        lines.append(
+                            f"• Đối chiếu Sổ Thu Chi thực tế: Chi={avb['actualRecordedExpenseVnd']:,.0f} VND, "
+                            f"Thu={avb['actualRecordedRevenueVnd']:,.0f} VND -> ROI hiệu chỉnh={avb['adjustedRoiPercentAgriOnly']:.2f}%."
+                        )
+                    for al in tout["calculation"].get("financialAlerts", []):
+                        lines.append(f"• [CẢNH BÁO {al['code']}] {al['message']}")
                 elif tname == "simulate_financial_scenarios" and "simulation" in tout:
                     sim = tout["simulation"]
                     lines.append("[So sánh Kịch bản Tài chính — Python Scenario Simulator]")

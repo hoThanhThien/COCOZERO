@@ -1,7 +1,14 @@
 "use client";
 
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, type Auth } from "firebase/auth";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  type Auth,
+} from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
@@ -13,9 +20,9 @@ const firebaseConfig = {
 export function isFirebaseWebConfigured(): boolean {
   return Boolean(
     firebaseConfig.apiKey &&
-      !firebaseConfig.apiKey.startsWith("CHANGE_ME") &&
-      firebaseConfig.projectId &&
-      !firebaseConfig.projectId.startsWith("CHANGE_ME")
+    !firebaseConfig.apiKey.startsWith("CHANGE_ME") &&
+    firebaseConfig.projectId &&
+    !firebaseConfig.projectId.startsWith("CHANGE_ME")
   );
 }
 
@@ -33,6 +40,20 @@ export async function signInWithGoogleFirebase(): Promise<{ idToken: string; ema
     idToken,
     email: result.user.email ?? "",
     displayName: result.user.displayName ?? result.user.email ?? "Google User",
+  };
+}
+
+export async function signInWithEmailPasswordFirebase(
+  email: string,
+  password: string
+): Promise<{ idToken: string; email: string; displayName: string }> {
+  const auth = getFirebaseAuth();
+  const result = await signInWithEmailAndPassword(auth, email.trim(), password);
+  const idToken = await result.user.getIdToken();
+  return {
+    idToken,
+    email: result.user.email ?? email.trim(),
+    displayName: result.user.displayName ?? result.user.email ?? email.trim(),
   };
 }
 

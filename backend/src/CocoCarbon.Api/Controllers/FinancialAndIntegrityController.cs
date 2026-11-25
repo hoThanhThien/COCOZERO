@@ -37,9 +37,17 @@ public sealed class FinancialAndIntegrityController(
     public async Task<IActionResult> Reports([FromBody] JsonElement body, [FromQuery] Guid? farmId, CancellationToken ct) =>
         await ForwardWithActualsAsync("api/financial/reports", body, farmId, isNestedCalculationInput: true, ct);
 
+    [HttpPost("/api/financial/parse-transaction")]
+    public async Task<IActionResult> ParseTransaction([FromBody] JsonElement body, CancellationToken ct) =>
+        await ForwardAsync("api/financial/parse-transaction", body, ct);
+
     [HttpPost("/api/carbon/integrity-check")]
     public async Task<IActionResult> IntegrityCheck([FromBody] JsonElement body, CancellationToken ct) =>
         await ForwardAsync("api/carbon/integrity-check", body, ct);
+
+    [HttpPost("/api/carbon/proposal-check")]
+    public async Task<IActionResult> ProposalCheck([FromBody] JsonElement body, CancellationToken ct) =>
+        await ForwardAsync("api/carbon/proposal-check", body, ct);
 
     private async Task<IActionResult> ForwardAsync(string path, JsonElement body, CancellationToken ct)
     {
@@ -88,6 +96,18 @@ public sealed class FinancialAndIntegrityController(
                 {
                     target["actualRecordedExpenseVnd"] ??= actualExp;
                     target["actualRecordedRevenueVnd"] ??= actualRev;
+                    var serializedEntries = new JsonArray();
+                    foreach (var e in entries.OrderByDescending(x => x.EntryDate))
+                    {
+                        serializedEntries.Add(new JsonObject
+                        {
+                            ["entryType"] = e.EntryType.ToString(),
+                            ["category"] = e.Category,
+                            ["amountVnd"] = e.AmountVnd,
+                            ["entryDate"] = e.EntryDate.ToString("O"),
+                        });
+                    }
+                    target["actualEntries"] ??= serializedEntries;
                 }
                 rawJson = root.ToJsonString();
             }
