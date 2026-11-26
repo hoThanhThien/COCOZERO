@@ -12,7 +12,7 @@ if (Test-Path $OutputZip) { Remove-Item $OutputZip -Force }
 
 $excludeDirs = @(
     ".git", "bin", "obj", "node_modules", ".next", ".venv", "__pycache__",
-    ".pytest_cache", ".gradle", "build", "dist", "storage", "TestResults"
+    ".pytest_cache", ".gradle", "build", "dist", "storage", "TestResults", "secrets"
 )
 
 $tempStage = Join-Path $env:TEMP ("cococarbon_stage_" + [guid]::NewGuid().ToString("N"))
